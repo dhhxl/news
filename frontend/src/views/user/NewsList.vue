@@ -88,6 +88,9 @@
               class="news-card"
               @click="viewNewsDetail(news.id)"
             >
+              <div v-if="news.imageUrl" class="news-image">
+                <img :src="news.imageUrl" :alt="news.title" />
+              </div>
               <div class="news-content">
                 <h3 class="news-title">{{ news.title }}</h3>
                 <p class="news-snippet">
@@ -99,6 +102,14 @@
                   <span class="views">
                     <el-icon><View /></el-icon>
                     {{ news.viewCount }}
+                  </span>
+                  <span v-if="news.likeCount" class="likes">
+                    <el-icon><Star /></el-icon>
+                    {{ news.likeCount }}
+                  </span>
+                  <span v-if="news.commentCount" class="comments">
+                    <el-icon><ChatDotRound /></el-icon>
+                    {{ news.commentCount }}
                   </span>
                 </div>
               </div>
@@ -134,7 +145,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
-  Search, Loading, View, User, Setting, SwitchButton 
+  Search, Loading, View, User, Setting, SwitchButton,
+  Star, ChatDotRound
 } from '@element-plus/icons-vue'
 import { getNewsList, getCategories, searchNews, getHotNews, getLatestNews, type News, type Category } from '@/api/news'
 import { useUserStore } from '@/stores/user'
@@ -450,11 +462,37 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s;
   border: 1px solid #e8e8e8;
+  display: flex;
+  gap: 20px;
 }
 
 .news-card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transform: translateY(-2px);
+}
+
+.news-image {
+  flex-shrink: 0;
+  width: 200px;
+  height: 150px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.news-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.news-card:hover .news-image img {
+  transform: scale(1.05);
+}
+
+.news-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .news-title {

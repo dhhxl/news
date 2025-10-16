@@ -149,10 +149,25 @@ public class NeteaseNewsCrawler extends AbstractNewsCrawler {
                 }
             }
 
+            // 提取图片URL
+            String imageUrl = null;
+            Element imageElement = doc.selectFirst("div.post_body img, div.post_text img, img.lazyload");
+            if (imageElement != null) {
+                imageUrl = imageElement.attr("abs:src");
+                if (imageUrl == null || imageUrl.isEmpty()) {
+                    // 尝试data-src（懒加载）
+                    imageUrl = imageElement.attr("data-src");
+                }
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+                    log.debug("Found image: {}", imageUrl);
+                }
+            }
+
             return News.builder()
                     .title(title)
                     .content(content)
                     .originalUrl(url)
+                    .imageUrl(imageUrl)
                     .publishTime(publishTime)
                     .status("PUBLISHED")
                     .viewCount(0L)

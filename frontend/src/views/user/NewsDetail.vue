@@ -27,6 +27,11 @@
           </span>
         </div>
 
+        <!-- 新闻配图 -->
+        <div v-if="news.imageUrl" class="news-image">
+          <img :src="news.imageUrl" :alt="news.title" />
+        </div>
+
         <!-- AI摘要 -->
         <div v-if="summary" class="summary-box">
           <div class="summary-header">
@@ -397,6 +402,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* 新闻配图 */
+.news-image {
+  width: 100%;
+  max-width: 800px;
+  margin: 20px auto;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.news-image img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 /* AI摘要 */

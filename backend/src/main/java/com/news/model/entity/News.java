@@ -48,6 +48,12 @@ public class News {
     private String originalUrl;
 
     /**
+     * 新闻配图URL
+     */
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
+    /**
      * 分类ID
      */
     @Column(name = "category_id", nullable = false)

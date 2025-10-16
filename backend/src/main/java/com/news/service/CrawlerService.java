@@ -67,10 +67,21 @@ public class CrawlerService {
 
             for (News news : crawledNews) {
                 try {
-                    // 1. 去重检测
-                    if (isDuplicate(news)) {
-                        log.info("Duplicate news skipped: {}", news.getTitle());
-                        failCount++;
+                    // 1. 检查是否已存在
+                    News existingNews = newsRepository.findByTitle(news.getTitle()).orElse(null);
+                    
+                    if (existingNews != null) {
+                        // 如果新闻已存在，但没有图片，且新爬取的有图片，则更新图片
+                        if ((existingNews.getImageUrl() == null || existingNews.getImageUrl().isEmpty()) 
+                            && news.getImageUrl() != null && !news.getImageUrl().isEmpty()) {
+                            existingNews.setImageUrl(news.getImageUrl());
+                            newsRepository.save(existingNews);
+                            successCount++;
+                            log.info("Updated image for existing news: {}", news.getTitle());
+                        } else {
+                            log.info("Duplicate news skipped: {}", news.getTitle());
+                            failCount++;
+                        }
                         continue;
                     }
 

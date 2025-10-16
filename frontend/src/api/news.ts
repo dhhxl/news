@@ -6,6 +6,7 @@ export interface News {
   content: string
   sourceWebsite: string
   originalUrl: string
+  imageUrl?: string
   categoryId: number
   publishTime: string
   crawlTime?: string
@@ -13,6 +14,8 @@ export interface News {
   status: string
   classificationMethod: string
   viewCount: number
+  likeCount?: number
+  commentCount?: number
   updatedAt: string
 }
 

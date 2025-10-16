@@ -151,10 +151,24 @@ public class CctvNewsCrawler extends AbstractNewsCrawler {
                 }
             }
 
+            // 提取图片URL
+            String imageUrl = null;
+            Element imageElement = doc.selectFirst("div.content_area img, div.cnt_bd img, img.lazy");
+            if (imageElement != null) {
+                imageUrl = imageElement.attr("abs:src");
+                if (imageUrl == null || imageUrl.isEmpty()) {
+                    imageUrl = imageElement.attr("data-src"); // 懒加载图片
+                }
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+                    log.debug("Found image: {}", imageUrl);
+                }
+            }
+
             return News.builder()
                     .title(title)
                     .content(content)
                     .originalUrl(url)
+                    .imageUrl(imageUrl)
                     .publishTime(publishTime)
                     .status("PUBLISHED")
                     .viewCount(0L)
