@@ -1,0 +1,604 @@
+openapi: 3.0.3
+info:
+  title: 新闻管理系统 - 新闻管理 API
+  version: 1.0.0
+  description: 新闻的增删改查、搜索、智能排序等核心功能API
+servers:
+  - url: http://localhost:8080/api
+    description: 本地开发环境
+
+tags:
+  - name: News
+    description: 新闻管理相关接口
+
+paths:
+  /news:
+    get:
+      tags:
+        - News
+      summary: 获取新闻列表（用户端）
+      description: 返回智能排序的新闻列表，支持分类筛选和分页
+      operationId: getNewsList
+      parameters:
+        - name: categoryId
+          in: query
+          description: 分类ID（可选，不传则返回所有）
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          description: 页码（从1开始）
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: 每页数量
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: keyword
+          in: query
+          description: 搜索关键词（可选）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回新闻列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+
+  /news/{id}:
+    get:
+      tags:
+        - News
+      summary: 获取新闻详情
+      description: 返回新闻完整内容，同时增加浏览量
+      operationId: getNewsDetail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 新闻ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 成功返回新闻详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsDetailResponse'
+        '404':
+          description: 新闻不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/news:
+    get:
+      tags:
+        - News
+      summary: 获取新闻列表（管理后台）
+      description: 返回所有新闻，包括草稿状态，支持高级筛选
+      operationId: getAdminNewsList
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: 新闻状态
+          schema:
+            type: string
+            enum: [DRAFT, PUBLISHED]
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: sourceName
+          in: query
+          description: 来源网站
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: 开始日期
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: 结束日期
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 成功返回新闻列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminNewsListResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - News
+      summary: 创建新闻
+      description: 管理员手动创建新闻
+      operationId: createNews
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNewsRequest'
+      responses:
+        '201':
+          description: 新闻创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsCreateResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/news/{id}:
+    put:
+      tags:
+        - News
+      summary: 更新新闻
+      description: 更新新闻的所有字段
+      operationId: updateNews
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNewsRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: 新闻不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - News
+      summary: 删除新闻
+      description: 永久删除新闻（会记录审计日志）
+      operationId: deleteNews
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: 新闻不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /admin/news/{id}/publish:
+    post:
+      tags:
+        - News
+      summary: 发布新闻
+      description: 将草稿状态的新闻发布
+      operationId: publishNews
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/news/batch-delete:
+    post:
+      tags:
+        - News
+      summary: 批量删除新闻
+      description: 批量删除多条新闻
+      operationId: batchDeleteNews
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ids
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  example: [1, 2, 3]
+      responses:
+        '200':
+          description: 批量删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchOperationResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NewsListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        title:
+          type: string
+          example: "央视网报道：科技创新推动经济发展"
+        summary:
+          type: string
+          description: 摘要（如有AI摘要则显示，否则截取正文前100字）
+          example: "最新消息显示，科技创新正在..."
+        imageUrl:
+          type: string
+          format: uri
+          example: "https://example.com/news/image.jpg"
+        sourceName:
+          type: string
+          example: "央视网"
+        categoryName:
+          type: string
+          example: "科技"
+        viewCount:
+          type: integer
+          format: int64
+          example: 1234
+        publishTime:
+          type: string
+          format: date-time
+          example: "2025-10-10T08:00:00Z"
+
+    NewsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "获取成功"
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/NewsListItem'
+            total:
+              type: integer
+              example: 1000
+            page:
+              type: integer
+              example: 1
+            pageSize:
+              type: integer
+              example: 20
+            totalPages:
+              type: integer
+              example: 50
+
+    NewsDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        content:
+          type: string
+          description: 完整正文内容
+        imageUrl:
+          type: string
+          format: uri
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        categoryId:
+          type: integer
+          format: int64
+        categoryName:
+          type: string
+        aiSummary:
+          type: string
+          description: AI生成的摘要（如有）
+          nullable: true
+        viewCount:
+          type: integer
+          format: int64
+        publishTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NewsDetailResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "获取成功"
+        data:
+          $ref: '#/components/schemas/NewsDetail'
+
+    AdminNewsListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/NewsDetail'
+                  - type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [DRAFT, PUBLISHED]
+                      classificationMethod:
+                        type: string
+                        enum: [MANUAL, AUTO]
+                      createdBy:
+                        type: string
+                        description: 创建人用户名
+            total:
+              type: integer
+            page:
+              type: integer
+            pageSize:
+              type: integer
+
+    CreateNewsRequest:
+      type: object
+      required:
+        - title
+        - content
+        - categoryId
+        - sourceName
+        - sourceUrl
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+          example: "手动创建的新闻标题"
+        content:
+          type: string
+          minLength: 50
+          example: "新闻正文内容..."
+        summary:
+          type: string
+          maxLength: 500
+          description: 可选的手动摘要
+        imageUrl:
+          type: string
+          format: uri
+        categoryId:
+          type: integer
+          format: int64
+          example: 1
+        sourceName:
+          type: string
+          example: "手动录入"
+        sourceUrl:
+          type: string
+          format: uri
+          example: "https://example.com"
+        publishTime:
+          type: string
+          format: date-time
+          description: 可选，不传则使用当前时间
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED]
+          default: DRAFT
+
+    UpdateNewsRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 5
+          maxLength: 200
+        content:
+          type: string
+          minLength: 50
+        summary:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        categoryId:
+          type: integer
+          format: int64
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+        publishTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED]
+
+    NewsCreateResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: "新闻创建成功"
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 100
+            title:
+              type: string
+
+    BatchOperationResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "批量操作成功"
+        data:
+          type: object
+          properties:
+            successCount:
+              type: integer
+              example: 3
+            failedCount:
+              type: integer
+              example: 0
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  reason:
+                    type: string
+
+    SuccessResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "操作成功"
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
