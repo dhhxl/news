@@ -146,7 +146,8 @@ import { getCategories, type Category } from '@/api/news'
 import { 
   createDraft, 
   submitNews as submitNewsApi, 
-  updateNews, 
+  updateNews,
+  resubmitNews as resubmitNewsApi, 
   getNewsForEdit,
   uploadImage,
   getUnusedImages,
@@ -162,6 +163,9 @@ const newsFormRef = ref<FormInstance>()
 
 // 是否编辑模式
 const isEditing = computed(() => !!route.params.id)
+
+// 新闻状态（用于判断是否是被驳回的新闻）
+const newsStatus = ref<string>('')
 
 // 表单数据
 const newsForm = reactive<NewsSubmitRequest & { submitNote?: string }>({
@@ -185,7 +189,7 @@ const newsRules = {
   ],
   content: [
     { required: true, message: '请输入新闻内容', trigger: 'blur' },
-    { min: 100, message: '内容至少需要100个字符', trigger: 'blur' }
+    { min: 20, message: '内容至少需要20个字符', trigger: 'blur' }
   ]
 }
 
@@ -252,6 +256,9 @@ async function loadNewsForEdit() {
     loading.value = true
     const newsId = Number(route.params.id)
     const news = await getNewsForEdit(newsId)
+    
+    // 保存新闻状态
+    newsStatus.value = news.status
     
     // 填充表单
     newsForm.title = news.title
@@ -367,14 +374,22 @@ async function submitNews() {
       .map(img => img.id!)
     
     if (isEditing.value) {
-      // 重新提交
-      await updateNews(Number(route.params.id), newsForm)
+      const newsId = Number(route.params.id)
+      // 如果是被驳回的新闻，使用resubmit API
+      if (newsStatus.value === 'REJECTED') {
+        await resubmitNewsApi(newsId, newsForm)
+        ElMessage.success('新闻重新提交成功，等待审核')
+      } else {
+        // 否则使用update API
+        await updateNews(newsId, newsForm)
+        ElMessage.success('新闻提交成功，等待审核')
+      }
     } else {
       // 创建并提交
       await submitNewsApi(newsForm)
+      ElMessage.success('新闻提交成功，等待审核')
     }
     
-    ElMessage.success('新闻提交成功，等待审核')
     router.push('/editor/news-list')
   } catch (error) {
     ElMessage.error('提交失败')

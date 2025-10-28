@@ -91,7 +91,7 @@ public class UploadedImage {
      * 获取完整的访问URL
      */
     public String getAccessUrl() {
-        return "/api/images/" + this.storedName;
+        return "/api/images/file/" + this.storedName;
     }
 
     /**

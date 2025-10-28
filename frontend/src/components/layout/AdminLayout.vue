@@ -191,9 +191,9 @@ const goToFrontend = () => {
 
 /* 侧边栏样式 */
 .admin-sidebar {
-  background: linear-gradient(180deg, #1a2332 0%, #263445 100%);
+  background: linear-gradient(180deg, #1e4620 0%, #2c7a3e 50%, #38a169 100%);
   color: #fff;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 12px rgba(44, 122, 62, 0.2);
   display: flex;
   flex-direction: column;
 }
@@ -259,13 +259,14 @@ const goToFrontend = () => {
 }
 
 .menu-item:hover {
-  background: rgba(64, 158, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   transform: translateX(4px);
 }
 
 .menu-item.is-active {
-  background: linear-gradient(90deg, #409eff 0%, #66b1ff 100%) !important;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(90deg, #d1fae5 0%, #a7f3d0 100%) !important;
+  box-shadow: 0 4px 12px rgba(209, 250, 229, 0.3);
+  color: #1e4620 !important;
 }
 
 .menu-icon {
@@ -295,7 +296,7 @@ const goToFrontend = () => {
 .main-container {
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: linear-gradient(to bottom, #f0fdf4 0%, #f5f7fa 100%);
 }
 
 /* 顶部导航栏 */
@@ -305,9 +306,9 @@ const goToFrontend = () => {
   justify-content: space-between;
   align-items: center;
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid #dcfce7;
   padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(44, 122, 62, 0.08);
   z-index: 10;
 }
 
@@ -341,11 +342,12 @@ const goToFrontend = () => {
 }
 
 .user-info:hover {
-  background: #f5f7fa;
+  background: #f0fdf4;
+  transform: translateY(-1px);
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #38a169 0%, #2c7a3e 100%);
   color: #fff;
 }
 
@@ -385,7 +387,7 @@ const goToFrontend = () => {
 /* 主内容区 */
 .admin-main {
   flex: 1;
-  background: #f5f7fa;
+  background: transparent;
   padding: 24px;
   overflow-y: auto;
 }

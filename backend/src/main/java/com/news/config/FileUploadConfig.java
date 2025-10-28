@@ -2,27 +2,20 @@ package com.news.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * 文件上传配置
+ * 
+ * 注意：不再实现 WebMvcConfigurer，图片访问由 ImageUploadController 处理
  */
 @Configuration
 @ConfigurationProperties(prefix = "app.upload")
-public class FileUploadConfig implements WebMvcConfigurer {
+public class FileUploadConfig {
 
     private String path = "uploads";
     private Long maxFileSize = 10485760L; // 10MB
     private Integer maxFilesPerUser = 100;
     private String[] allowedTypes = {"image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp"};
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 配置图片访问路径
-        registry.addResourceHandler("/api/images/**")
-                .addResourceLocations("file:" + path + "/");
-    }
 
     // Getters and setters
     public String getPath() {

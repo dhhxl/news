@@ -67,7 +67,8 @@ public class SecurityConfig {
                     "/news/**",
                     "/summaries/**",
                     "/comments/**",
-                    "/likes/**"
+                    "/likes/**",
+                    "/images/file/**"  // 允许公开访问图片
                 ).permitAll()
                 
                 // 管理员端点 - 需要ADMIN角色

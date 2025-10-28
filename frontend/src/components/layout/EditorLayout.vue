@@ -163,16 +163,18 @@ function goToMainSite() {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #2c7a3e 0%, #38a169 100%);
+  border-bottom: none;
+  box-shadow: 0 4px 16px rgba(44, 122, 62, 0.2);
 }
 
 .header-left .system-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  letter-spacing: 0.5px;
 }
 
 .header-right {
@@ -185,29 +187,32 @@ function goToMainSite() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .user-info:hover {
-  background-color: #f5f7fa;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .username {
   font-size: 14px;
-  color: #333;
+  font-weight: 500;
+  color: #ffffff;
 }
 
 .dropdown-icon {
   font-size: 12px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .editor-aside {
-  background: #f8f9fa;
-  border-right: 1px solid #e8e8e8;
+  background: linear-gradient(to bottom, #f0fdf4 0%, #f8f9fa 100%);
+  border-right: 1px solid #dcfce7;
 }
 
 .editor-menu {
@@ -224,13 +229,15 @@ function goToMainSite() {
 }
 
 .editor-menu .el-menu-item:hover {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #2c7a3e;
+  transform: translateX(4px);
 }
 
 .editor-menu .el-menu-item.is-active {
-  background-color: #1976d2;
+  background: linear-gradient(135deg, #38a169 0%, #2c7a3e 100%);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
 }
 
 .editor-menu .el-sub-menu .el-menu-item {
@@ -240,7 +247,7 @@ function goToMainSite() {
 }
 
 .editor-main {
-  background: #f5f7fa;
+  background: linear-gradient(to bottom, #f0fdf4 0%, #f5f7fa 100%);
   padding: 0;
   overflow-y: auto;
 }

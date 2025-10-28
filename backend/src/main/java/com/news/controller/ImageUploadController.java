@@ -16,14 +16,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 /**
  * 图片上传Controller
+ * 
+ * 注意：context-path 已经是 /api，所以这里只需要 /images
+ * 完整路径：/api (context-path) + /images = /api/images
  */
 @RestController
-@RequestMapping("/api/images")
+@RequestMapping("/images")
 @RequiredArgsConstructor
 @Slf4j
 public class ImageUploadController {
@@ -91,7 +96,7 @@ public class ImageUploadController {
     /**
      * 获取图片详情
      */
-    @GetMapping("/{imageId}")
+    @GetMapping("/details/{imageId}")
     @PreAuthorize("hasRole('EDITOR') or hasRole('ADMIN')")
     public ResponseEntity<UploadedImage> getImageDetails(@PathVariable Long imageId) {
         UploadedImage image = imageUploadService.getImageById(imageId);
@@ -99,18 +104,22 @@ public class ImageUploadController {
     }
 
     /**
-     * 访问图片文件
+     * 访问图片文件（公开访问）
      */
-    @GetMapping("/{storedName}")
+    @GetMapping("/file/{storedName}")
     public ResponseEntity<Resource> getImageFile(@PathVariable String storedName) {
         try {
             UploadedImage image = imageUploadService.getImageByStoredName(storedName);
             Resource resource = imageUploadService.loadImageAsResource(storedName);
             
+            // URL编码中文文件名
+            String encodedFilename = URLEncoder.encode(image.getOriginalName(), StandardCharsets.UTF_8)
+                    .replaceAll("\\+", "%20");
+            
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(image.getMimeType()))
                     .header(HttpHeaders.CONTENT_DISPOSITION, 
-                            "inline; filename=\"" + image.getOriginalName() + "\"")
+                            "inline; filename*=UTF-8''" + encodedFilename)
                     .body(resource);
         } catch (Exception e) {
             log.error("Failed to load image: {}", storedName, e);

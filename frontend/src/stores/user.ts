@@ -29,15 +29,20 @@ export const useUserStore = defineStore('user', () => {
 
   function setUser(info: UserInfo) {
     userInfo.value = info;
+    // 保存用户信息到 localStorage
+    localStorage.setItem('user_info', JSON.stringify(info));
   }
 
   function setUserInfo(info: UserInfo) {
     userInfo.value = info;
+    // 保存用户信息到 localStorage
+    localStorage.setItem('user_info', JSON.stringify(info));
   }
 
   function clearUser() {
     token.value = null;
     userInfo.value = null;
+    localStorage.removeItem('user_info');
   }
 
   function loadToken() {
@@ -46,6 +51,17 @@ export const useUserStore = defineStore('user', () => {
     );
     if (savedToken) {
       token.value = savedToken;
+    }
+    
+    // 同时加载用户信息
+    const savedUserInfo = localStorage.getItem('user_info');
+    if (savedUserInfo) {
+      try {
+        userInfo.value = JSON.parse(savedUserInfo);
+      } catch (error) {
+        console.error('Failed to parse user info:', error);
+        localStorage.removeItem('user_info');
+      }
     }
   }
 

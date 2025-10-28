@@ -28,6 +28,8 @@ import java.util.Map;
 public class NewsReviewController {
 
     private final NewsReviewService newsReviewService;
+    private final com.news.service.AuditLogService auditLogService;
+    private final com.news.service.UserService userService;
 
     /**
      * 提交新闻审核（编辑使用）
@@ -39,7 +41,19 @@ public class NewsReviewController {
             Authentication authentication) {
         
         Long userId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User user = userService.findById(userId);
+        
         NewsReviewResponse response = newsReviewService.submitForReview(newsId, userId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.CREATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            newsId,
+            userId,
+            user.getUsername(),
+            "提交新闻审核"
+        );
         
         return ResponseEntity.ok(response);
     }
@@ -56,8 +70,20 @@ public class NewsReviewController {
         Long newsId = Long.valueOf(request.get("newsId").toString());
         Long reviewerId = Long.valueOf(request.get("reviewerId").toString());
         Long adminId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User admin = userService.findById(adminId);
+        com.news.model.entity.User reviewer = userService.findById(reviewerId);
         
         newsReviewService.assignReviewer(newsId, reviewerId, adminId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.UPDATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            newsId,
+            adminId,
+            admin.getUsername(),
+            "分配审核人: " + reviewer.getUsername()
+        );
         
         return ResponseEntity.ok(Map.of("message", "审核人分配成功"));
     }
@@ -72,7 +98,22 @@ public class NewsReviewController {
             Authentication authentication) {
         
         Long reviewerId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User reviewer = userService.findById(reviewerId);
+        
         NewsReviewResponse response = newsReviewService.reviewNews(request, reviewerId);
+        
+        // 记录审计日志
+        String operationDetails = "审核新闻: " + request.getNewsId() + 
+                                 ", 动作: " + request.getAction() +
+                                 (request.getReviewComment() != null ? ", 备注: " + request.getReviewComment() : "");
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.REVIEW,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            request.getNewsId(),
+            reviewerId,
+            reviewer.getUsername(),
+            operationDetails
+        );
         
         return ResponseEntity.ok(response);
     }

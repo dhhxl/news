@@ -4,8 +4,10 @@ import com.news.exception.BusinessException;
 import com.news.model.dto.NewsSubmitRequest;
 import com.news.model.entity.News;
 import com.news.model.entity.NewsReview;
+import com.news.model.entity.UploadedImage;
 import com.news.repository.NewsRepository;
 import com.news.repository.NewsReviewRepository;
+import com.news.repository.UploadedImageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,8 @@ public class EditorNewsService {
 
     private final NewsRepository newsRepository;
     private final NewsReviewRepository newsReviewRepository;
+    private final UploadedImageRepository uploadedImageRepository;
+    private final ImageUploadService imageUploadService;
 
     /**
      * 创建新闻草稿
@@ -51,6 +55,11 @@ public class EditorNewsService {
                 .build();
 
         news = newsRepository.save(news);
+        
+        // 关联图片到新闻
+        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
+            imageUploadService.associateImagesToNews(request.getImageIds(), news.getId(), editorId);
+        }
 
         log.info("Draft created: {} by editor {}", news.getId(), editorId);
         return news;
@@ -83,8 +92,8 @@ public class EditorNewsService {
             ? request.getOriginalUrl().trim() : null);
 
         // 处理图片更新
-        if (request.getImageIds() != null) {
-            // TODO: 图片处理逻辑待实现
+        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
+            imageUploadService.associateImagesToNews(request.getImageIds(), newsId, editorId);
         }
 
         news = newsRepository.save(news);
@@ -116,12 +125,12 @@ public class EditorNewsService {
         // 提交审核
         news.submitForReview(editorId);
 
-        // 处理图片
-        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
-            // TODO: 图片处理逻辑待实现
-        }
-
         News savedNews = newsRepository.save(news);
+        
+        // 关联图片到新闻
+        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
+            imageUploadService.associateImagesToNews(request.getImageIds(), savedNews.getId(), editorId);
+        }
         
         // 创建审核记录
         NewsReview submitRecord = NewsReview.createSubmitRecord(savedNews.getId(), editorId);
@@ -154,15 +163,15 @@ public class EditorNewsService {
         news.setOriginalUrl(request.getOriginalUrl() != null && !request.getOriginalUrl().trim().isEmpty() 
             ? request.getOriginalUrl().trim() : null);
 
-        // 处理图片
-        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
-            // TODO: 图片处理逻辑待实现
-        }
-
         // 重新提交审核
         news.submitForReview(editorId);
 
         News updatedNews = newsRepository.save(news);
+        
+        // 关联图片到新闻
+        if (request.getImageIds() != null && !request.getImageIds().isEmpty()) {
+            imageUploadService.associateImagesToNews(request.getImageIds(), newsId, editorId);
+        }
         
         // 创建审核记录
         NewsReview submitRecord = NewsReview.createSubmitRecord(newsId, editorId);
@@ -235,6 +244,11 @@ public class EditorNewsService {
         
         if (request.getContent() == null || request.getContent().trim().isEmpty()) {
             throw new BusinessException("内容不能为空");
+        }
+        
+        // ⭐ 验证内容长度（至少20个字符）
+        if (request.getContent().trim().length() < 20) {
+            throw new BusinessException("新闻内容至少需要20个字符");
         }
         
         if (request.getCategoryId() == null) {
@@ -333,6 +347,13 @@ public class EditorNewsService {
      */
     public Page<News> getEditorRecentNews(Long editorId, Pageable pageable) {
         return newsRepository.findBySubmittedByOrderBySubmittedAtDesc(editorId, pageable);
+    }
+
+    /**
+     * 获取新闻关联的图片
+     */
+    public List<UploadedImage> getNewsImages(Long newsId) {
+        return uploadedImageRepository.findByNewsIdOrderByUploadTimeAsc(newsId);
     }
 
 }

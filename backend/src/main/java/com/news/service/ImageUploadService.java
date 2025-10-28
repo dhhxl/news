@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +34,7 @@ import java.util.UUID;
 public class ImageUploadService {
 
     private final UploadedImageRepository uploadedImageRepository;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Value("${app.upload.path:uploads}")
     private String uploadPath;
@@ -164,6 +166,9 @@ public class ImageUploadService {
 
         List<UploadedImage> images = uploadedImageRepository.findByIdInOrderByUploadTimeAsc(imageIds);
         
+        // 收集图片访问URL
+        List<String> imageUrls = new ArrayList<>();
+        
         for (UploadedImage image : images) {
             // 检查权限
             if (!image.getUploadedBy().equals(userId)) {
@@ -172,10 +177,30 @@ public class ImageUploadService {
             
             // 标记为已使用
             image.markAsUsed(newsId);
+            
+            // 收集访问URL
+            imageUrls.add(image.getAccessUrl());
         }
         
         uploadedImageRepository.saveAll(images);
+        
+        // 更新新闻的图片URL列表
+        updateNewsImageUrls(newsId, imageUrls);
+        
         log.info("Associated {} images to news {}", images.size(), newsId);
+    }
+    
+    /**
+     * 更新新闻的图片URL列表
+     */
+    private void updateNewsImageUrls(Long newsId, List<String> imageUrls) {
+        // 需要注入NewsRepository来更新News实体
+        // 为了避免循环依赖，使用EntityManager
+        com.news.model.entity.News news = entityManager.find(com.news.model.entity.News.class, newsId);
+        if (news != null) {
+            news.setImageUrlList(imageUrls);
+            entityManager.merge(news);
+        }
     }
 
     /**

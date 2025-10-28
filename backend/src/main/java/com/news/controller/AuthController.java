@@ -43,11 +43,23 @@ public class AuthController {
             // 输入验证
             validateRegisterRequest(registerRequest);
             
+            // 确定用户角色（默认为USER）
+            String role = registerRequest.role();
+            if (role == null || role.trim().isEmpty()) {
+                role = "USER";
+            }
+            
+            // 验证角色是否合法
+            if (!role.equals("USER") && !role.equals("EDITOR") && !role.equals("ADMIN")) {
+                throw new IllegalArgumentException("无效的角色类型，只能是 USER、EDITOR 或 ADMIN");
+            }
+            
             // 创建用户
             User user = userService.createUser(
                     registerRequest.username(),
                     registerRequest.password(),
-                    registerRequest.email()
+                    registerRequest.email(),
+                    role
             );
 
             // 自动登录
@@ -227,7 +239,10 @@ public class AuthController {
             String password,
             
             @jakarta.validation.constraints.Email(message = "邮箱格式不正确")
-            String email
+            String email,
+            
+            // 角色：USER, EDITOR, ADMIN（可选，默认为USER）
+            String role
     ) {}
     
     /**

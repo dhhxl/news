@@ -29,6 +29,8 @@ import java.util.Map;
 public class EditorNewsController {
 
     private final EditorNewsService editorNewsService;
+    private final com.news.service.AuditLogService auditLogService;
+    private final com.news.service.UserService userService;
 
     /**
      * 创建新闻草稿
@@ -40,7 +42,18 @@ public class EditorNewsController {
             Authentication authentication) {
         
         Long editorId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User editor = userService.findById(editorId);
         News news = editorNewsService.createDraft(request, editorId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.CREATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            news.getId(),
+            editorId,
+            editor.getUsername(),
+            "创建新闻草稿: " + news.getTitle()
+        );
         
         return ResponseEntity.status(HttpStatus.CREATED).body(news);
     }
@@ -55,7 +68,18 @@ public class EditorNewsController {
             Authentication authentication) {
         
         Long editorId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User editor = userService.findById(editorId);
         News news = editorNewsService.submitNews(request, editorId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.PUBLISH,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            news.getId(),
+            editorId,
+            editor.getUsername(),
+            "提交新闻: " + news.getTitle()
+        );
         
         return ResponseEntity.status(HttpStatus.CREATED).body(news);
     }
@@ -71,7 +95,18 @@ public class EditorNewsController {
             Authentication authentication) {
         
         Long editorId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User editor = userService.findById(editorId);
         News news = editorNewsService.updateNews(newsId, request, editorId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.UPDATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            news.getId(),
+            editorId,
+            editor.getUsername(),
+            "更新新闻: " + news.getTitle()
+        );
         
         return ResponseEntity.ok(news);
     }
@@ -87,7 +122,18 @@ public class EditorNewsController {
             Authentication authentication) {
         
         Long editorId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User editor = userService.findById(editorId);
         News news = editorNewsService.resubmitNews(newsId, request, editorId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.UPDATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            news.getId(),
+            editorId,
+            editor.getUsername(),
+            "重新提交新闻: " + news.getTitle()
+        );
         
         return ResponseEntity.ok(news);
     }
@@ -102,7 +148,18 @@ public class EditorNewsController {
             Authentication authentication) {
         
         Long editorId = getUserIdFromAuth(authentication);
+        com.news.model.entity.User editor = userService.findById(editorId);
         editorNewsService.cancelReview(newsId, editorId);
+        
+        // 记录审计日志
+        auditLogService.log(
+            com.news.service.AuditLogService.OperationType.UPDATE,
+            com.news.service.AuditLogService.TargetEntity.NEWS,
+            newsId,
+            editorId,
+            editor.getUsername(),
+            "取消审核"
+        );
         
         return ResponseEntity.ok(Map.of("message", "审核已取消，新闻已恢复为草稿状态"));
     }

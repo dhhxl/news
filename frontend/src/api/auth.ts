@@ -42,6 +42,7 @@ export interface RegisterRequest {
   username: string;
   password: string;
   email: string;
+  role?: string; // 可选角色：USER, EDITOR, ADMIN
 }
 
 /**

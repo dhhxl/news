@@ -150,7 +150,7 @@ export function deleteDraft(newsId: number) {
 export function uploadImage(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/api/images/upload', formData, {
+  return request.post('/images/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -165,7 +165,7 @@ export function uploadImages(files: File[]) {
   files.forEach(file => {
     formData.append('files', file)
   })
-  return request.post('/api/images/upload/batch', formData, {
+  return request.post('/images/upload/batch', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -176,14 +176,14 @@ export function uploadImages(files: File[]) {
  * 获取我的图片列表
  */
 export function getMyImages(params: { page?: number; size?: number }) {
-  return request.get('/api/images/my-images', { params })
+  return request.get('/images/my-images', { params })
 }
 
 /**
  * 获取未使用的图片
  */
 export function getUnusedImages() {
-  return request.get('/api/images/unused')
+  return request.get('/images/unused')
 }
 
 /**
@@ -204,7 +204,7 @@ export function deleteImage(imageId: number) {
  * 关联图片到新闻
  */
 export function associateImagesToNews(imageIds: number[], newsId: number) {
-  return request.post('/api/images/associate-to-news', { imageIds, newsId })
+  return request.post('/images/associate-to-news', { imageIds, newsId })
 }
 
 // ============ 新闻审核相关接口 ============

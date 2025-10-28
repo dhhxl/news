@@ -38,6 +38,11 @@ spring:
       max-request-size: 50MB
       file-size-threshold: 2KB
   
+  # 禁用默认静态资源处理，图片由 Controller 处理
+  web:
+    resources:
+      add-mappings: false  # 禁用 Spring Boot 默认静态资源映射
+  
   data:
     redis:
       host: localhost

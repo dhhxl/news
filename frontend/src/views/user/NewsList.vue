@@ -38,6 +38,10 @@
                     <el-icon><User /></el-icon>
                     个人中心
                   </el-dropdown-item>
+                  <el-dropdown-item v-if="isEditorOrAdmin" @click="goToEditor">
+                    <el-icon><Edit /></el-icon>
+                    编辑工作台
+                  </el-dropdown-item>
                   <el-dropdown-item v-if="isAdmin" @click="goToAdmin">
                     <el-icon><Setting /></el-icon>
                     管理后台
@@ -146,7 +150,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
   Search, Loading, View, User, Setting, SwitchButton,
-  Star, ChatDotRound
+  Star, ChatDotRound, Edit
 } from '@element-plus/icons-vue'
 import { getNewsList, getCategories, searchNews, getHotNews, getLatestNews, type News, type Category } from '@/api/news'
 import { useUserStore } from '@/stores/user'
@@ -184,6 +188,11 @@ const currentUsername = computed(() => {
 
 const isAdmin = computed(() => {
   return userStore.user?.role === 'ADMIN'
+})
+
+const isEditorOrAdmin = computed(() => {
+  const role = userStore.user?.role
+  return role === 'EDITOR' || role === 'ADMIN'
 })
 
 // 加载分类
@@ -289,6 +298,10 @@ function goToUserCenter() {
   router.push('/user/center')
 }
 
+function goToEditor() {
+  router.push('/editor')
+}
+
 function goToAdmin() {
   router.push('/admin')
 }
@@ -317,17 +330,17 @@ onMounted(() => {
 <style scoped>
 .news-list-page {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: linear-gradient(to bottom, #f0fdf4 0%, #f5f5f5 100%);
 }
 
 /* 头部 */
 .header {
-  background: #c00;
+  background: linear-gradient(135deg, #2c7a3e 0%, #38a169 100%);
   color: white;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 12px rgba(44, 122, 62, 0.3);
 }
 
 .header-content {
@@ -367,8 +380,9 @@ onMounted(() => {
 }
 
 .nav-item.active {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.25);
   font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* 搜索框 */
@@ -429,8 +443,12 @@ onMounted(() => {
 
 .list-header h2 {
   margin: 0;
-  font-size: 24px;
-  color: #333;
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2c7a3e 0%, #38a169 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* 加载状态 */
@@ -457,26 +475,28 @@ onMounted(() => {
 
 .news-card {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 24px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   border: 1px solid #e8e8e8;
   display: flex;
-  gap: 20px;
+  gap: 24px;
 }
 
 .news-card:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(56, 161, 105, 0.15);
+  transform: translateY(-3px);
+  border-color: #38a169;
 }
 
 .news-image {
   flex-shrink: 0;
-  width: 200px;
-  height: 150px;
-  border-radius: 6px;
+  width: 220px;
+  height: 165px;
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .news-image img {
@@ -519,8 +539,11 @@ onMounted(() => {
 }
 
 .source {
-  color: #c00;
-  font-weight: 500;
+  color: #38a169;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: #f0fdf4;
+  border-radius: 4px;
 }
 
 .views {

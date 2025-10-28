@@ -46,6 +46,17 @@
           />
         </el-form-item>
 
+        <el-form-item label="角色" prop="role">
+          <el-select
+            v-model="form.role"
+            placeholder="请选择角色"
+            style="width: 100%"
+          >
+            <el-option label="普通用户" value="USER" />
+            <el-option label="编辑员" value="EDITOR" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item>
           <el-button
             type="primary"
@@ -82,7 +93,8 @@ const form = reactive({
   username: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  role: 'USER' // 默认为普通用户
 })
 
 const validateConfirmPassword = (rule: any, value: any, callback: any) => {
@@ -111,6 +123,9 @@ const rules: FormRules = {
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
   ]
 }
 
@@ -124,7 +139,8 @@ const handleRegister = async () => {
     const response = await register({
       username: form.username,
       email: form.email,
-      password: form.password
+      password: form.password,
+      role: form.role
     })
 
     // 保存token和用户信息

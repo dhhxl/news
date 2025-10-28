@@ -49,5 +49,5 @@ export function handleOverdueReviews() {
  * 清理未使用的图片
  */
 export function cleanupUnusedImages(daysOld: number = 30) {
-  return request.post('/api/images/cleanup', null, { params: { daysOld } })
+  return request.post('/images/cleanup', null, { params: { daysOld } })
 }
