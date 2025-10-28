@@ -33,6 +33,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, title: '个人中心' }
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/Profile.vue'),
+    meta: { requiresAuth: true, title: '个人资料' }
+  },
+  {
     path: '/category/:id',
     name: 'CategoryNews',
     component: () => import('@/views/user/CategoryNews.vue'),
@@ -90,6 +96,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'AuditLog',
         component: () => import('@/views/admin/AuditLog.vue'),
         meta: { title: '审计日志' }
+      },
+      {
+        path: 'users',
+        name: 'UserManagement',
+        component: () => import('@/views/admin/UserManagement.vue'),
+        meta: { title: '用户管理' }
       },
       {
         path: 'review',

@@ -112,8 +112,7 @@ const activeMenu = computed(() => {
 async function handleUserCommand(command: string) {
   switch (command) {
     case 'profile':
-      // TODO: 打开个人资料对话框
-      ElMessage.info('个人资料功能开发中')
+      router.push('/profile')
       break
       
     case 'logout':

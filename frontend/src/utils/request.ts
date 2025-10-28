@@ -91,5 +91,9 @@ service.interceptors.response.use(
   }
 );
 
+// 导出service
 export default service;
+
+// 为了类型安全，也可以导出包装函数
+export const request = service;
 

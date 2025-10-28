@@ -51,6 +51,12 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    @Column(length = 20)
+    private String phone;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {

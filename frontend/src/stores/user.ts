@@ -6,6 +6,9 @@ interface UserInfo {
   username: string;
   role: string;
   email?: string;
+  fullName?: string;
+  avatarUrl?: string;
+  phone?: string;
 }
 
 export const useUserStore = defineStore('user', () => {

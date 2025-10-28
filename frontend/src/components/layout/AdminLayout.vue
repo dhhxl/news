@@ -65,6 +65,13 @@
               <span class="menu-title">审计日志</span>
             </template>
           </el-menu-item>
+          
+          <el-menu-item index="/admin/users" class="menu-item">
+            <el-icon class="menu-icon"><User /></el-icon>
+            <template #title>
+              <span class="menu-title">用户管理</span>
+            </template>
+          </el-menu-item>
         </el-menu>
       </el-scrollbar>
       
@@ -115,6 +122,10 @@
                     <div class="user-name">{{ username }}</div>
                     <div class="user-role">管理员</div>
                   </div>
+                </el-dropdown-item>
+                <el-dropdown-item command="profile">
+                  <el-icon><User /></el-icon>
+                  个人中心
                 </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
@@ -175,6 +186,8 @@ const handleCommand = (command: string) => {
   if (command === 'logout') {
     userStore.logout();
     router.push('/login');
+  } else if (command === 'profile') {
+    router.push('/profile');
   }
 };
 

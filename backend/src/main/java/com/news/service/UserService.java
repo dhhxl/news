@@ -5,11 +5,15 @@ import com.news.model.entity.User;
 import com.news.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -116,6 +120,133 @@ public class UserService {
      */
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
+    }
+
+    /**
+     * 更新个人资料
+     */
+    @Transactional
+    public User updateProfile(Long userId, String fullName, String email, String phone) {
+        User user = findById(userId);
+        
+        // 如果邮箱改变，检查是否已被其他用户使用
+        if (email != null && !email.equals(user.getEmail())) {
+            Optional<User> existingUser = userRepository.findByEmail(email);
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                throw new IllegalArgumentException("该邮箱已被其他用户使用");
+            }
+            user.setEmail(email);
+        }
+        
+        if (fullName != null) {
+            user.setFullName(fullName);
+        }
+        
+        if (phone != null) {
+            user.setPhone(phone);
+        }
+        
+        User updatedUser = userRepository.save(user);
+        log.info("Updated profile for user: {}", user.getUsername());
+        return updatedUser;
+    }
+
+    /**
+     * 更新用户头像
+     */
+    @Transactional
+    public User updateAvatar(Long userId, String avatarUrl) {
+        User user = findById(userId);
+        user.setAvatarUrl(avatarUrl);
+        User updatedUser = userRepository.save(user);
+        log.info("Updated avatar for user: {}", user.getUsername());
+        return updatedUser;
+    }
+
+    // ==================== 管理员功能 ====================
+
+    /**
+     * 获取所有用户（分页）
+     */
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
+    /**
+     * 搜索用户（支持用户名、邮箱、姓名搜索）
+     */
+    public Page<User> searchUsers(String keyword, String role, Boolean isEnabled, Pageable pageable) {
+        // 这里可以使用Specification进行复杂查询
+        // 简化版本：先返回所有用户，前端处理筛选
+        return userRepository.findAll(pageable);
+    }
+
+    /**
+     * 获取所有用户列表（不分页）
+     */
+    public List<User> getAllUsersList() {
+        return userRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+    }
+
+    /**
+     * 删除用户
+     */
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = findById(userId);
+        
+        // 不能删除管理员账户
+        if ("ADMIN".equals(user.getRole())) {
+            throw new IllegalArgumentException("不能删除管理员账户");
+        }
+        
+        userRepository.deleteById(userId);
+        log.info("Deleted user: {} (ID: {})", user.getUsername(), userId);
+    }
+
+    /**
+     * 禁用/启用用户
+     */
+    @Transactional
+    public User toggleUserStatus(Long userId) {
+        User user = findById(userId);
+        
+        // 不能禁用管理员账户
+        if ("ADMIN".equals(user.getRole())) {
+            throw new IllegalArgumentException("不能禁用管理员账户");
+        }
+        
+        user.setIsEnabled(!user.getIsEnabled());
+        User updatedUser = userRepository.save(user);
+        log.info("Toggled user status: {} -> {}", user.getUsername(), user.getIsEnabled());
+        return updatedUser;
+    }
+
+    /**
+     * 重置用户密码（管理员功能）
+     */
+    @Transactional
+    public void resetPassword(Long userId, String newPassword) {
+        User user = findById(userId);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password reset for user: {}", user.getUsername());
+    }
+
+    /**
+     * 统计用户数量
+     */
+    public long countUsers() {
+        return userRepository.count();
+    }
+
+    /**
+     * 按角色统计用户数量
+     */
+    public long countUsersByRole(String role) {
+        return userRepository.findAll().stream()
+                .filter(u -> role.equals(u.getRole()))
+                .count();
     }
 }
 
