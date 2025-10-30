@@ -39,6 +39,13 @@ export function getAllReviewableNews(params: { page?: number; size?: number }) {
 }
 
 /**
+ * 获取审核统计信息
+ */
+export function getReviewStats() {
+  return request.get('/api/review/stats')
+}
+
+/**
  * 处理超时审核
  */
 export function handleOverdueReviews() {

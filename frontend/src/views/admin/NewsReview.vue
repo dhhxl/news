@@ -1,9 +1,14 @@
 <template>
   <div class="news-review">
-    <div class="container">
-      <!-- 页面头部 -->
+    <!-- 页面标题 -->
       <div class="page-header">
-        <h1>新闻审核管理</h1>
+      <div class="header-content">
+        <h2 class="page-title">
+          <el-icon class="title-icon"><CircleCheck /></el-icon>
+          新闻审核管理
+        </h2>
+        <p class="page-desc">审核待发布的新闻内容，确保内容质量和合规性</p>
+      </div>
         <div class="header-stats">
           <el-statistic title="待审核" :value="stats.pending" />
           <el-statistic title="审核中" :value="stats.reviewing" />
@@ -11,160 +16,197 @@
         </div>
       </div>
 
-      <!-- 筛选器 -->
-      <el-card class="filter-card" shadow="never">
-        <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+    <el-card shadow="hover" class="content-card">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">
+            <el-icon><List /></el-icon>
+            审核列表
+          </span>
+          <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="header-tabs">
           <el-tab-pane label="待审核" name="pending" />
           <el-tab-pane label="审核中" name="reviewing" />
           <el-tab-pane label="全部" name="all" />
         </el-tabs>
-      </el-card>
-
-      <!-- 审核列表 -->
-      <el-card class="review-list-card">
-        <div v-if="loading" class="loading-state">
-          <el-skeleton :rows="5" animated />
         </div>
+      </template>
 
-        <div v-else-if="reviewList.length > 0" class="review-list">
-          <div 
-            v-for="item in reviewList" 
-            :key="item.newsId"
-            class="review-item"
-          >
-            <!-- 状态和优先级 -->
-            <div class="item-status">
-              <el-tag 
-                :type="getStatusTagType(item.status)"
-                size="large"
-              >
-                {{ getStatusText(item.status) }}
+      <!-- 审核表格 -->
+      <el-table
+        :data="reviewList"
+        v-loading="loading"
+        style="width: 100%"
+        stripe
+      >
+        <el-table-column prop="newsId" label="ID" width="80" />
+        
+        <el-table-column label="标题" min-width="250">
+          <template #default="scope">
+            <div class="title-cell">
+              <span class="news-title">{{ scope.row.title }}</span>
+              <el-tag v-if="scope.row.isOverdue" type="danger" size="small" style="margin-left: 8px">
+                超时
               </el-tag>
-              <div v-if="item.isOverdue" class="overdue-badge">
-                <el-tag type="danger" size="small">超时</el-tag>
-              </div>
             </div>
+          </template>
+        </el-table-column>
 
-            <!-- 新闻信息 -->
-            <div class="item-content">
-              <div class="news-header">
-                <h3 class="news-title">{{ item.title }}</h3>
-                <div class="news-meta">
-                  <span>提交人: {{ item.submittedByUsername }}</span>
-                  <span>提交时间: {{ formatDateTime(item.submittedAt) }}</span>
-                  <span v-if="item.reviewDeadline">
-                    截止时间: {{ formatDateTime(item.reviewDeadline) }}
-                  </span>
-                </div>
-              </div>
+        <el-table-column label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="getStatusTagType(scope.row.status)">
+              {{ getStatusText(scope.row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
 
-              <div class="news-preview">
-                {{ item.content.substring(0, 300) }}...
-              </div>
+        <el-table-column prop="categoryName" label="分类" width="120" />
+        
+        <el-table-column label="提交人" width="120">
+          <template #default="scope">
+            {{ scope.row.submittedByUsername }}
+          </template>
+        </el-table-column>
 
-              <div class="news-extra">
-                <div v-if="item.imageCount > 0" class="image-count">
-                  <el-icon><Picture /></el-icon>
-                  {{ item.imageCount }} 张图片
-                </div>
-                <div class="category">
-                  分类: {{ item.categoryName || '未知' }}
-                </div>
-              </div>
-            </div>
+        <el-table-column label="提交时间" width="160">
+          <template #default="scope">
+            {{ formatDateTime(scope.row.submittedAt) }}
+          </template>
+        </el-table-column>
 
-            <!-- 审核操作 -->
-            <div class="item-actions">
+        <el-table-column label="截止时间" width="160">
+          <template #default="scope">
+            <span :class="{ 'text-danger': scope.row.isOverdue }">
+              {{ scope.row.reviewDeadline ? formatDateTime(scope.row.reviewDeadline) : '-' }}
+            </span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="280" fixed="right">
+          <template #default="scope">
               <el-button 
                 type="primary" 
                 size="small"
-                @click="viewNews(item)"
+              @click="viewNews(scope.row)"
               >
-                查看详情
+              查看
               </el-button>
               
               <el-button 
-                v-if="item.status === 'PENDING'"
+              v-if="scope.row.status === 'PENDING'"
                 type="success" 
                 size="small"
-                @click="approveNews(item)"
+              @click="approveNews(scope.row)"
               >
                 通过
               </el-button>
               
               <el-button 
-                v-if="item.status === 'PENDING' || item.status === 'REVIEWING'"
+              v-if="scope.row.status === 'PENDING' || scope.row.status === 'REVIEWING'"
                 type="danger" 
                 size="small"
-                @click="rejectNews(item)"
+              @click="rejectNews(scope.row)"
               >
                 拒绝
               </el-button>
-
-              <el-dropdown @command="handleCommand" trigger="click">
-                <el-button size="small" :icon="More" circle />
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item 
-                      :command="{action: 'history', item}"
-                      :icon="Document"
-                    >
-                      审核历史
-                    </el-dropdown-item>
-                    <el-dropdown-item 
-                      :command="{action: 'assign', item}"
-                      :icon="User"
-                    >
-                      分配审核人
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
                 </template>
-              </el-dropdown>
-            </div>
-          </div>
-        </div>
-
-        <el-empty v-else description="暂无待审核新闻" />
+        </el-table-column>
+      </el-table>
 
         <!-- 分页 -->
-        <div v-if="total > 0" class="pagination">
+      <div v-if="total > 0" class="pagination-container">
           <el-pagination
             v-model:current-page="currentPage"
             v-model:page-size="pageSize"
             :total="total"
-            layout="total, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
             @current-change="loadReviewList"
             @size-change="loadReviewList"
           />
         </div>
       </el-card>
+
+    <!-- 审核详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="新闻详情"
+      width="70%"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentNews" class="news-detail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="标题" :span="2">
+            {{ currentNews.title }}
+          </el-descriptions-item>
+          <el-descriptions-item label="分类">
+            {{ currentNews.categoryName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusTagType(currentNews.status)">
+              {{ getStatusText(currentNews.status) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="提交人">
+            {{ currentNews.submittedByUsername }}
+          </el-descriptions-item>
+          <el-descriptions-item label="提交时间">
+            {{ formatDateTime(currentNews.submittedAt) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="内容" :span="2">
+            <div class="content-preview">{{ currentNews.content }}</div>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div v-if="currentNews.reviewNotes" class="review-notes">
+          <h4>审核备注</h4>
+          <p>{{ currentNews.reviewNotes }}</p>
+        </div>
     </div>
 
-    <!-- 审核对话框 -->
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <el-button 
+          v-if="currentNews && currentNews.status === 'PENDING'"
+          type="success"
+          @click="approveNews(currentNews)"
+        >
+          通过
+        </el-button>
+        <el-button 
+          v-if="currentNews && (currentNews.status === 'PENDING' || currentNews.status === 'REVIEWING')"
+          type="danger"
+          @click="rejectNews(currentNews)"
+        >
+          拒绝
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 审批对话框 -->
     <el-dialog
-      v-model="reviewDialogVisible"
-      :title="reviewAction === 'APPROVE' ? '审核通过' : '审核拒绝'"
+      v-model="approvalDialogVisible"
+      :title="approvalAction === 'approve' ? '通过审核' : '拒绝审核'"
       width="500px"
     >
-      <el-form :model="reviewForm" label-width="80px">
-        <el-form-item label="审核意见">
+      <el-form :model="approvalForm" label-width="80px">
+        <el-form-item label="审核备注">
           <el-input
-            v-model="reviewForm.reviewComment"
+            v-model="approvalForm.notes"
             type="textarea"
             :rows="4"
-            placeholder="请填写审核意见（可选）"
+            placeholder="请输入审核意见..."
           />
         </el-form-item>
       </el-form>
       
       <template #footer>
-        <el-button @click="reviewDialogVisible = false">取消</el-button>
+        <el-button @click="approvalDialogVisible = false">取消</el-button>
         <el-button 
-          type="primary" 
-          @click="confirmReview"
-          :loading="reviewing"
+          :type="approvalAction === 'approve' ? 'success' : 'danger'"
+          @click="confirmApproval"
+          :loading="approving"
         >
-          确认{{ reviewAction === 'APPROVE' ? '通过' : '拒绝' }}
+          确认{{ approvalAction === 'approve' ? '通过' : '拒绝' }}
         </el-button>
       </template>
     </el-dialog>
@@ -173,325 +215,288 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { More, Document, User, Picture } from '@element-plus/icons-vue'
-import { 
-  getPendingReviews,
-  getReviewingNews, 
-  getAllReviewableNews,
-  reviewNews,
-  type NewsReviewResponse 
-} from '@/api/admin'
-
-const router = useRouter()
+import { CircleCheck, List, Picture, More, Document, User } from '@element-plus/icons-vue'
+import { getPendingReviews, getReviewingNews, getAllReviewableNews, reviewNews, getReviewStats } from '@/api/admin'
+import type { NewsReviewRequest } from '@/api/editor'
 
 // 状态数据
-const loading = ref(false)
-const reviewing = ref(false)
 const activeTab = ref('pending')
+const loading = ref(false)
+const reviewList = ref<any[]>([])
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(20)
 const total = ref(0)
-const reviewList = ref<NewsReviewResponse[]>([])
 
-// 统计数据
 const stats = reactive({
   pending: 0,
   reviewing: 0,
   processed: 0
 })
 
-// 审核相关
-const reviewDialogVisible = ref(false)
-const reviewAction = ref<'APPROVE' | 'REJECT'>('APPROVE')
-const currentReviewItem = ref<NewsReviewResponse | null>(null)
-const reviewForm = reactive({
-  reviewComment: ''
+// 对话框
+const detailDialogVisible = ref(false)
+const approvalDialogVisible = ref(false)
+const currentNews = ref<any>(null)
+const approvalAction = ref<'approve' | 'reject'>('approve')
+const approving = ref(false)
+
+const approvalForm = reactive({
+  notes: ''
 })
 
-// 页面初始化
-onMounted(() => {
-  loadReviewList()
-})
-
-/**
- * 加载审核列表
- */
-async function loadReviewList() {
+// 加载审核列表
+const loadReviewList = async () => {
+  loading.value = true
   try {
-    loading.value = true
-    
     const params = {
-      page: currentPage.value - 1,
+      page: currentPage.value - 1, // 后端从0开始
       size: pageSize.value
     }
     
     let response
-    switch (activeTab.value) {
-      case 'pending':
-        response = await getPendingReviews(params)
-        break
-      case 'reviewing':
-        response = await getReviewingNews(params)
-        break
-      default:
-        response = await getAllReviewableNews(params)
+    if (activeTab.value === 'pending') {
+      response = await getPendingReviews(params)
+    } else if (activeTab.value === 'reviewing') {
+      response = await getReviewingNews(params)
+    } else {
+      response = await getAllReviewableNews(params)
     }
     
-    reviewList.value = response.content
-    total.value = response.totalElements
+    reviewList.value = response.content || []
+    total.value = response.totalElements || 0
     
-    // TODO: 更新统计数据
-    
-  } catch (error) {
-    ElMessage.error('加载审核列表失败')
+    // 加载统计数据
+    await loadStats()
+  } catch (error: any) {
+    console.error('加载审核列表失败:', error)
+    ElMessage.error(error.response?.data?.message || '加载审核列表失败')
   } finally {
     loading.value = false
   }
 }
 
-/**
- * 切换标签页
- */
-function handleTabChange() {
+// 加载统计数据
+const loadStats = async () => {
+  try {
+    const statsData = await getReviewStats()
+    stats.pending = statsData.pending || 0
+    stats.reviewing = statsData.reviewing || 0
+    stats.processed = (statsData.approved || 0) + (statsData.rejected || 0)
+  } catch (error) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+// 切换标签
+const handleTabChange = (tab: string) => {
   currentPage.value = 1
   loadReviewList()
 }
 
-/**
- * 查看新闻详情
- */
-function viewNews(item: NewsReviewResponse) {
-  router.push(`/news/${item.newsId}`)
+// 查看详情
+const viewNews = (item: any) => {
+  currentNews.value = item
+  detailDialogVisible.value = true
 }
 
-/**
- * 通过审核
- */
-function approveNews(item: NewsReviewResponse) {
-  reviewAction.value = 'APPROVE'
-  currentReviewItem.value = item
-  reviewForm.reviewComment = ''
-  reviewDialogVisible.value = true
+// 通过审核
+const approveNews = (item: any) => {
+  currentNews.value = item
+  approvalAction.value = 'approve'
+  approvalForm.notes = ''
+  approvalDialogVisible.value = true
 }
 
-/**
- * 拒绝审核
- */
-function rejectNews(item: NewsReviewResponse) {
-  reviewAction.value = 'REJECT'
-  currentReviewItem.value = item
-  reviewForm.reviewComment = ''
-  reviewDialogVisible.value = true
+// 拒绝审核
+const rejectNews = (item: any) => {
+  currentNews.value = item
+  approvalAction.value = 'reject'
+  approvalForm.notes = ''
+  approvalDialogVisible.value = true
 }
 
-/**
- * 确认审核
- */
-async function confirmReview() {
-  if (!currentReviewItem.value) return
-  
+// 确认审批
+const confirmApproval = async () => {
+  if (approvalAction.value === 'reject' && !approvalForm.notes.trim()) {
+    ElMessage.warning('拒绝审核时必须填写备注')
+    return
+  }
+
+  approving.value = true
   try {
-    reviewing.value = true
+    const request: NewsReviewRequest = {
+      newsId: currentNews.value.newsId,
+      action: approvalAction.value === 'approve' ? 'APPROVE' : 'REJECT',
+      reviewComment: approvalForm.notes || undefined
+    }
     
-    await reviewNews({
-      newsId: currentReviewItem.value.newsId,
-      action: reviewAction.value,
-      reviewComment: reviewForm.reviewComment
-    })
+    await reviewNews(request)
     
-    ElMessage.success(`审核${reviewAction.value === 'APPROVE' ? '通过' : '拒绝'}成功`)
-    reviewDialogVisible.value = false
-    loadReviewList()
-    
-  } catch (error) {
-    ElMessage.error('审核操作失败')
+    ElMessage.success(`审核${approvalAction.value === 'approve' ? '通过' : '拒绝'}成功`)
+    approvalDialogVisible.value = false
+    detailDialogVisible.value = false
+    await loadReviewList()
+  } catch (error: any) {
+    console.error('审核操作失败:', error)
+    ElMessage.error(error.response?.data?.message || '操作失败')
   } finally {
-    reviewing.value = false
+    approving.value = false
   }
 }
 
-/**
- * 处理下拉菜单命令
- */
-function handleCommand(command: any) {
-  const { action, item } = command
-  
-  switch (action) {
-    case 'history':
-      // TODO: 显示审核历史
-      break
-    case 'assign':
-      // TODO: 分配审核人
-      break
-  }
-}
-
-/**
- * 获取状态标签类型
- */
-function getStatusTagType(status: string) {
-  const typeMap: Record<string, string> = {
+// 获取状态类型
+const getStatusTagType = (status: string) => {
+  const typeMap: Record<string, any> = {
     PENDING: 'warning',
     REVIEWING: 'primary',
-    PUBLISHED: 'success',
+    APPROVED: 'success',
     REJECTED: 'danger'
   }
   return typeMap[status] || 'info'
 }
 
-/**
- * 获取状态文本
- */
-function getStatusText(status: string) {
+// 获取状态文本
+const getStatusText = (status: string) => {
   const textMap: Record<string, string> = {
     PENDING: '待审核',
     REVIEWING: '审核中',
-    PUBLISHED: '已发布', 
+    APPROVED: '已通过',
     REJECTED: '已拒绝'
   }
   return textMap[status] || status
 }
 
-/**
- * 格式化日期时间
- */
-function formatDateTime(dateTime: string) {
+// 格式化时间
+const formatDateTime = (dateTime: string) => {
   if (!dateTime) return ''
   return new Date(dateTime).toLocaleString('zh-CN')
 }
+
+// 初始化
+onMounted(() => {
+  loadReviewList()
+})
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .news-review {
-  padding: 20px;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
 }
 
 .page-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.page-header h1 {
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  .header-content {
+    flex: 1;
+    
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: #000;
+      
+      .title-icon {
+        font-size: 28px;
+      }
+    }
+    
+    .page-desc {
   margin: 0;
-  font-size: 24px;
-  color: #333;
+      color: #6b7280;
+      font-size: 14px;
+    }
 }
 
 .header-stats {
   display: flex;
   gap: 32px;
 }
-
-.filter-card,
-.review-list-card {
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.loading-state {
-  padding: 20px;
-}
-
-.review-list {
+.content-card {
+  border-radius: 12px;
+  
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .card-header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.review-item {
+    justify-content: space-between;
+    align-items: center;
+    
+    .card-title {
   display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  padding: 20px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-
-.review-item:hover {
-  border-color: #409eff;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
-}
-
-.item-status {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
+      align-items: center;
   gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #000;
+    }
+    
+    .header-tabs {
+      :deep(.el-tabs__header) {
+        margin: 0;
+      }
+    }
+  }
 }
 
-.item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.news-header {
-  margin-bottom: 12px;
-}
-
-.news-title {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.news-meta {
+.title-cell {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 13px;
-  color: #999;
+  
+  .news-title {
+    font-weight: 500;
+    color: #000;
+  }
 }
 
-.news-preview {
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 12px;
+.text-danger {
+  color: #ef4444;
+  font-weight: 500;
 }
 
-.news-extra {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 13px;
-  color: #999;
-}
-
-.image-count {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #409eff;
-}
-
-.item-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.pagination {
+.pagination-container {
   display: flex;
   justify-content: center;
-  margin-top: 24px;
+  margin-top: 20px;
+  padding-top: 10px;
 }
 
-.overdue-badge {
-  text-align: center;
+.news-detail {
+  .content-preview {
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+  
+  .review-notes {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    
+    h4 {
+      margin: 0 0 12px;
+      color: #000;
+    }
+    
+    p {
+      margin: 0;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+  }
 }
 </style>

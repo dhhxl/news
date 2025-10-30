@@ -29,25 +29,59 @@
       <div class="search-bar">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索新闻标题..."
+          placeholder="搜索新闻标题或内容..."
           style="width: 300px"
-          @keyup.enter="loadNews"
+          clearable
+          @keyup.enter="handleSearch"
+          @clear="handleClearSearch"
         >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
           <template #append>
-            <el-button :icon="Search" @click="loadNews" />
+            <el-button :icon="Search" @click="handleSearch" />
           </template>
         </el-input>
         
-        <el-select v-model="filterCategory" placeholder="选择分类" clearable @change="loadNews" style="width: 150px">
-          <el-option label="全部" :value="null" />
+        <el-select 
+          v-model="filterCategory" 
+          placeholder="选择分类" 
+          clearable 
+          @change="loadNews" 
+          style="width: 150px"
+        >
+          <el-option label="全部分类" :value="null" />
           <el-option v-for="cat in categories" :key="cat.id" :label="cat.name" :value="cat.id" />
         </el-select>
 
-        <el-select v-model="filterStatus" placeholder="状态" clearable @change="loadNews" style="width: 120px">
+        <el-select 
+          v-model="filterStatus" 
+          placeholder="状态" 
+          clearable 
+          @change="loadNews" 
+          style="width: 130px"
+        >
+          <el-option label="全部状态" :value="''" />
           <el-option label="已发布" value="PUBLISHED" />
           <el-option label="草稿" value="DRAFT" />
           <el-option label="已归档" value="ARCHIVED" />
+          <el-option label="待审核" value="PENDING" />
+          <el-option label="审核中" value="REVIEWING" />
+          <el-option label="已拒绝" value="REJECTED" />
         </el-select>
+
+        <el-select 
+          v-model="sortBy" 
+          placeholder="排序方式" 
+          @change="loadNews" 
+          style="width: 150px"
+        >
+          <el-option label="默认排序" value="" />
+          <el-option label="⏰ 最新发布" value="time" />
+          <el-option label="🔥 最热门" value="hot" />
+        </el-select>
+
+        <el-button @click="resetFilters" :icon="RefreshRight">重置</el-button>
       </div>
 
       <!-- 批量操作栏 -->
@@ -179,7 +213,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, MagicStick, Document, List, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, MagicStick, Document, List, Delete, RefreshRight } from '@element-plus/icons-vue'
 import {
   getNewsList,
   getCategories,
@@ -208,6 +242,7 @@ const totalElements = ref(0)
 const searchKeyword = ref('')
 const filterCategory = ref<number | null>(null)
 const filterStatus = ref<string>('')
+const sortBy = ref<string>('')
 const selectedNews = ref<News[]>([])
 
 // 对话框
@@ -237,11 +272,26 @@ async function loadCategories() {
 async function loadNews() {
   loading.value = true
   try {
-    const response: any = await getNewsList({
+    const params: any = {
       page: currentPage.value - 1,
-      size: pageSize.value,
-      categoryId: filterCategory.value || undefined
-    })
+      size: pageSize.value
+    }
+    
+    // 添加可选参数
+    if (filterCategory.value) {
+      params.categoryId = filterCategory.value
+    }
+    if (filterStatus.value) {
+      params.status = filterStatus.value
+    }
+    if (searchKeyword.value && searchKeyword.value.trim()) {
+      params.keyword = searchKeyword.value.trim()
+    }
+    if (sortBy.value) {
+      params.sortBy = sortBy.value
+    }
+    
+    const response: any = await getNewsList(params)
     newsList.value = response.content
     totalElements.value = response.totalElements
   } catch (error) {
@@ -249,6 +299,29 @@ async function loadNews() {
   } finally {
     loading.value = false
   }
+}
+
+// 搜索处理
+function handleSearch() {
+  currentPage.value = 1 // 重置到第一页
+  loadNews()
+}
+
+// 清除搜索
+function handleClearSearch() {
+  searchKeyword.value = ''
+  currentPage.value = 1
+  loadNews()
+}
+
+// 重置所有筛选
+function resetFilters() {
+  searchKeyword.value = ''
+  filterCategory.value = null
+  filterStatus.value = ''
+  sortBy.value = ''
+  currentPage.value = 1
+  loadNews()
 }
 
 // 显示创建对话框
@@ -468,66 +541,68 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .news-management {
-  animation: fadeIn 0.5s ease;
+  padding: 0;
 }
 
 /* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 24px;
-  padding: 24px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 12px;
-  color: #fff;
-  box-shadow: 0 8px 24px rgba(79, 172, 254, 0.3);
-}
-
-.header-content {
-  flex: 1;
-}
-
-.page-title {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.title-icon {
-  font-size: 32px;
-}
-
-.page-desc {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  .header-content {
+    flex: 1;
+    
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: #000;
+      
+      .title-icon {
+        font-size: 28px;
+      }
+    }
+    
+    .page-desc {
+      margin: 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+  }
 }
 
 /* 内容卡片 */
 .content-card {
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+  
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #000;
+    }
+  }
 }
 
 .search-bar {

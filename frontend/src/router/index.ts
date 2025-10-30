@@ -5,8 +5,14 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('@/views/user/NewsList.vue'),
+    component: () => import('@/views/user/ModernHome.vue'),
     meta: { requiresAuth: false, title: '首页' }
+  },
+  {
+    path: '/user/news',
+    name: 'NewsList',
+    component: () => import('@/views/user/NewsList.vue'),
+    meta: { requiresAuth: false, title: '新闻列表' }
   },
   {
     path: '/login',

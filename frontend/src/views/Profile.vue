@@ -1,5 +1,12 @@
 <template>
   <div class="profile-container">
+    <!-- 返回按钮 -->
+    <div class="back-button-container">
+      <el-button @click="goBack" :icon="ArrowLeft">
+        返回
+      </el-button>
+    </div>
+
     <el-card class="profile-card">
       <template #header>
         <div class="card-header">
@@ -194,8 +201,9 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, FormInstance, FormRules } from 'element-plus'
-import { User, Camera, CircleCheck, CircleClose } from '@element-plus/icons-vue'
+import { User, Camera, CircleCheck, CircleClose, ArrowLeft } from '@element-plus/icons-vue'
 import { 
   getUserProfileApi, 
   updateProfileApi, 
@@ -205,7 +213,13 @@ import {
 } from '../api/profile'
 import { useUserStore } from '../stores/user'
 
+const router = useRouter()
 const userStore = useUserStore()
+
+// 返回上一页
+const goBack = () => {
+  router.back()
+}
 
 // 数据
 const activeTab = ref('basic')
@@ -341,11 +355,18 @@ const handleAvatarChange = (file: any) => {
 
 // 上传头像
 const uploadAvatar = async () => {
-  if (!avatarFile.value) return
+  if (!avatarFile.value) {
+    ElMessage.warning('请先选择头像图片')
+    return
+  }
   
   avatarUploading.value = true
   try {
+    console.log('开始上传头像...')
     const avatarUrl = await uploadAvatarApi(avatarFile.value)
+    console.log('头像上传成功，URL:', avatarUrl)
+    
+    // 更新当前显示的头像
     profile.value.avatarUrl = avatarUrl
     avatarFile.value = null
     avatarPreview.value = ''
@@ -355,10 +376,14 @@ const uploadAvatar = async () => {
       userStore.userInfo.avatarUrl = avatarUrl
     }
     
-    ElMessage.success('头像上传成功')
-  } catch (error) {
+    // 重新加载个人资料以确保数据同步
+    await loadProfile()
+    
+    ElMessage.success('头像上传并保存成功')
+  } catch (error: any) {
     console.error('头像上传失败:', error)
-    ElMessage.error('头像上传失败')
+    const errorMsg = error.response?.data?.message || error.message || '头像上传失败'
+    ElMessage.error(errorMsg)
   } finally {
     avatarUploading.value = false
   }
@@ -456,6 +481,14 @@ onMounted(() => {
   padding: 20px;
   max-width: 1000px;
   margin: 0 auto;
+}
+
+.back-button-container {
+  margin-bottom: 20px;
+  
+  .el-button {
+    font-size: 14px;
+  }
 }
 
 .profile-card {

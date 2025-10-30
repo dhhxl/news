@@ -5,8 +5,8 @@
       <div class="logo">
         <div class="logo-icon">📰</div>
         <div class="logo-text">
-          <h2>新闻管理系统</h2>
-          <p>News Management</p>
+          <h2>新闻管理</h2>
+          <p>Admin Panel</p>
         </div>
       </div>
       

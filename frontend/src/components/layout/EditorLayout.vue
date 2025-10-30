@@ -3,7 +3,10 @@
     <!-- 顶部导航 -->
     <el-header class="editor-header">
       <div class="header-left">
-        <h2 class="system-title">新闻编辑系统</h2>
+        <div class="logo">
+          <span class="logo-icon">✍️</span>
+          <h2 class="system-title">编辑工作台</h2>
+        </div>
       </div>
       
       <div class="header-right">

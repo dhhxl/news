@@ -261,5 +261,84 @@ public class NewsService {
         log.info("News archived successfully: {}", id);
         return archived;
     }
+
+    /**
+     * 按分类获取最新新闻
+     */
+    public Page<News> getLatestNewsByCategory(Long categoryId, Pageable pageable) {
+        return newsRepository.findByCategoryIdAndStatus(
+                categoryId, 
+                "PUBLISHED", 
+                org.springframework.data.domain.PageRequest.of(
+                    pageable.getPageNumber(), 
+                    pageable.getPageSize(),
+                    org.springframework.data.domain.Sort.by("publishTime").descending()
+                )
+        );
+    }
+
+    /**
+     * 按分类获取热门新闻
+     */
+    public Page<News> getHotNewsByCategory(Long categoryId, Pageable pageable) {
+        return newsRepository.findHotNewsByCategory(categoryId, pageable);
+    }
+
+    /**
+     * 管理员获取新闻列表（支持所有状态、排序和搜索）
+     */
+    public Page<News> getNewsListForAdmin(
+            int page, 
+            int size, 
+            Long categoryId, 
+            String keyword, 
+            String sortBy, 
+            String status) {
+        
+        org.springframework.data.domain.Pageable pageable;
+        
+        // 根据排序方式创建Pageable对象
+        if ("time".equalsIgnoreCase(sortBy)) {
+            // 按时间降序排序
+            pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, 
+                org.springframework.data.domain.Sort.by("publishTime").descending()
+            );
+        } else if ("hot".equalsIgnoreCase(sortBy)) {
+            // 按浏览量降序排序
+            pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, 
+                org.springframework.data.domain.Sort.by("viewCount").descending()
+            );
+        } else {
+            // 默认按更新时间排序
+            pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, 
+                org.springframework.data.domain.Sort.by("updatedAt").descending()
+            );
+        }
+
+        // 如果有搜索关键词
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return newsRepository.searchByKeywordForAdmin(keyword, status, pageable);
+        }
+
+        // 按状态和分类筛选
+        if (status != null && !status.isEmpty()) {
+            if (categoryId != null) {
+                return newsRepository.findByStatusAndCategoryId(status, categoryId, pageable);
+            } else {
+                return newsRepository.findByStatus(status, pageable);
+            }
+        }
+
+        // 只按分类筛选
+        if (categoryId != null) {
+            return newsRepository.findByCategoryId(categoryId, pageable);
+        }
+
+        // 返回所有新闻
+        return newsRepository.findAll(pageable);
+    }
 }
 

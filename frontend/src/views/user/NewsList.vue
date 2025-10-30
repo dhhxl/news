@@ -1,276 +1,197 @@
 <template>
-  <div class="news-list-page">
-    <!-- 顶部导航 -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="logo">新闻网</h1>
-        <nav class="nav">
-          <a 
-            v-for="cat in categories" 
-            :key="cat.id"
-            :class="['nav-item', { active: currentCategory === cat.id }]"
-            @click="selectCategory(cat.id)"
-          >
-            {{ cat.name }}
-          </a>
-        </nav>
-        <div class="search-box">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索新闻..."
-            @keyup.enter="handleSearch"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
-            </template>
-          </el-input>
+  <div class="min-h-screen bg-gray-50">
+    <ModernHeader />
+    
+    <div class="pt-24 pb-12 px-6">
+      <div class="max-w-7xl mx-auto">
+        <!-- 页面标题 -->
+        <div class="mb-8">
+          <h1 class="text-4xl md:text-5xl font-bold mb-4">新闻列表</h1>
+          <p class="text-lg text-gray-600">浏览最新的新闻资讯</p>
         </div>
-        <div class="user-menu">
-          <template v-if="isLoggedIn">
-            <el-dropdown>
-              <span class="user-dropdown">
-                <el-icon><User /></el-icon>
-                {{ currentUsername }}
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="goToUserCenter">
-                    <el-icon><User /></el-icon>
-                    个人中心
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="isEditorOrAdmin" @click="goToEditor">
-                    <el-icon><Edit /></el-icon>
-                    编辑工作台
-                  </el-dropdown-item>
-                  <el-dropdown-item v-if="isAdmin" @click="goToAdmin">
-                    <el-icon><Setting /></el-icon>
-                    管理后台
-                  </el-dropdown-item>
-                  <el-dropdown-item divided @click="handleLogout">
-                    <el-icon><SwitchButton /></el-icon>
-                    退出登录
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-          <template v-else>
-            <el-button size="small" @click="goToLogin">登录</el-button>
-            <el-button type="primary" size="small" @click="goToRegister">
-              注册
-            </el-button>
-          </template>
+
+        <!-- 分类筛选 -->
+        <div class="mb-8 flex flex-wrap gap-3">
+          <button
+            @click="selectedCategory = null"
+            :class="[
+              'px-6 py-2 rounded-full text-sm font-medium transition-all',
+              selectedCategory === null
+                ? 'bg-black text-white'
+                : 'bg-white text-black hover:bg-gray-100 border border-gray-300'
+            ]"
+          >
+            全部
+          </button>
+          <button
+            v-for="category in categories"
+            :key="category.id"
+            @click="selectedCategory = category.id"
+            :class="[
+              'px-6 py-2 rounded-full text-sm font-medium transition-all',
+              selectedCategory === category.id
+                ? 'bg-black text-white'
+                : 'bg-white text-black hover:bg-gray-100 border border-gray-300'
+            ]"
+          >
+            {{ category.name }}
+          </button>
         </div>
-      </div>
-    </header>
 
-    <!-- 主要内容区 -->
-    <div class="main-content">
-      <div class="container">
-        <!-- 新闻列表 -->
-        <div class="news-list">
-          <div class="list-header">
-            <h2>{{ currentCategoryName }}</h2>
-            <el-radio-group v-model="sortType" size="small" @change="loadNews">
-              <el-radio-button value="smart">智能排序</el-radio-button>
-              <el-radio-button value="hot">热门</el-radio-button>
-              <el-radio-button value="latest">最新</el-radio-button>
-            </el-radio-group>
-          </div>
-
-          <!-- 加载状态 -->
-          <div v-if="loading" class="loading">
-            <el-icon class="is-loading"><Loading /></el-icon>
-            <span>加载中...</span>
-          </div>
-
-          <!-- 新闻卡片 -->
-          <div v-else class="news-items">
-            <article 
-              v-for="news in newsList" 
-              :key="news.id"
-              class="news-card"
-              @click="viewNewsDetail(news.id)"
-            >
-              <div v-if="news.imageUrl" class="news-image">
-                <img :src="news.imageUrl" :alt="news.title" />
+        <!-- 新闻网格 -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            v-for="news in filteredNews"
+            :key="news.id"
+            class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
+            @click="goToDetail(news.id)"
+          >
+            <!-- 新闻图片 -->
+            <div class="aspect-video bg-gray-200 overflow-hidden">
+              <img
+                v-if="news.imageUrl"
+                :src="news.imageUrl"
+                :alt="news.title"
+                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <span class="text-gray-400 text-4xl">📰</span>
               </div>
-              <div class="news-content">
-                <h3 class="news-title">{{ news.title }}</h3>
-                <p class="news-snippet">
-                  {{ news.content.substring(0, 150) }}...
-                </p>
-                <div class="news-meta">
-                  <span class="source">{{ news.sourceWebsite }}</span>
-                  <span class="time">{{ formatTime(news.publishTime) }}</span>
-                  <span class="views">
-                    <el-icon><View /></el-icon>
-                    {{ news.viewCount }}
-                  </span>
-                  <span v-if="news.likeCount" class="likes">
-                    <el-icon><Star /></el-icon>
-                    {{ news.likeCount }}
-                  </span>
-                  <span v-if="news.commentCount" class="comments">
-                    <el-icon><ChatDotRound /></el-icon>
-                    {{ news.commentCount }}
-                  </span>
+            </div>
+
+            <!-- 新闻内容 -->
+            <div class="p-6">
+              <!-- 分类标签 -->
+              <div class="mb-3">
+                <span class="text-xs px-3 py-1 bg-black text-white rounded-full">
+                  {{ news.categoryName }}
+                </span>
+              </div>
+
+              <!-- 标题 -->
+              <h3 class="text-xl font-bold mb-2 line-clamp-2 group-hover:text-gray-600 transition-colors">
+                {{ news.title }}
+              </h3>
+
+              <!-- 摘要 -->
+              <p class="text-sm text-gray-600 mb-4 line-clamp-3">
+                {{ news.summary }}
+              </p>
+
+              <!-- 底部信息 -->
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>{{ formatDate(news.publishTime) }}</span>
+                <div class="flex items-center gap-3">
+                  <span>👁️ {{ news.viewCount || 0 }}</span>
+                  <span>👍 {{ news.likeCount || 0 }}</span>
                 </div>
               </div>
-            </article>
-
-            <!-- 空状态 -->
-            <el-empty 
-              v-if="newsList.length === 0 && !loading" 
-              description="暂无新闻"
-            />
+            </div>
           </div>
+        </div>
 
-          <!-- 分页 -->
-          <div class="pagination">
-            <el-pagination
-              v-model:current-page="currentPage"
-              v-model:page-size="pageSize"
-              :total="totalElements"
-              :page-sizes="[10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @current-change="loadNews"
-              @size-change="loadNews"
-            />
-          </div>
+        <!-- 空状态 -->
+        <div v-if="filteredNews.length === 0" class="text-center py-16">
+          <div class="text-6xl mb-4">📭</div>
+          <p class="text-xl text-gray-600">暂无新闻</p>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="total > pageSize" class="mt-12 flex justify-center">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="total"
+            layout="prev, pager, next"
+            @current-change="handlePageChange"
+          />
         </div>
       </div>
     </div>
+
+    <ModernFooter />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { 
-  Search, Loading, View, User, Setting, SwitchButton,
-  Star, ChatDotRound, Edit
-} from '@element-plus/icons-vue'
-import { getNewsList, getCategories, searchNews, getHotNews, getLatestNews, type News, type Category } from '@/api/news'
-import { useUserStore } from '@/stores/user'
-import { logout } from '@/api/auth'
+import { getNewsList } from '@/api/news'
+import ModernHeader from '@/components/modern/ModernHeader.vue'
+import ModernFooter from '@/components/modern/ModernFooter.vue'
 
 const router = useRouter()
-const userStore = useUserStore()
 
-// 数据
+interface News {
+  id: number
+  title: string
+  summary: string
+  imageUrl: string
+  categoryName: string
+  publishTime: string
+  viewCount: number
+  likeCount: number
+}
+
+interface Category {
+  id: number
+  name: string
+}
+
 const newsList = ref<News[]>([])
 const categories = ref<Category[]>([])
-const loading = ref(false)
-const currentCategory = ref<number | null>(null)
+const selectedCategory = ref<number | null>(null)
 const currentPage = ref(1)
-const pageSize = ref(20)
-const totalElements = ref(0)
-const sortType = ref('smart')
-const searchKeyword = ref('')
+const pageSize = ref(12)
+const total = ref(0)
 
-// 计算属性
-const currentCategoryName = computed(() => {
-  if (!currentCategory.value) return '全部新闻'
-  const cat = categories.value.find(c => c.id === currentCategory.value)
-  return cat ? cat.name : '全部新闻'
+const filteredNews = computed(() => {
+  if (selectedCategory.value === null) {
+    return newsList.value
+  }
+  return newsList.value.filter(news => news.categoryName === categories.value.find(c => c.id === selectedCategory.value)?.name)
 })
 
-// 用户相关
-const isLoggedIn = computed(() => {
-  return !!localStorage.getItem('news_management_token')
-})
-
-const currentUsername = computed(() => {
-  return userStore.user?.username || '用户'
-})
-
-const isAdmin = computed(() => {
-  return userStore.user?.role === 'ADMIN'
-})
-
-const isEditorOrAdmin = computed(() => {
-  const role = userStore.user?.role
-  return role === 'EDITOR' || role === 'ADMIN'
-})
-
-// 加载分类
-async function loadCategories() {
+const fetchNews = async () => {
   try {
-    const data = await getCategories()
-    categories.value = data
+    const response = await getNewsList({
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      categoryId: selectedCategory.value,
+      status: 'PUBLISHED'
+    })
+    newsList.value = response.content || []
+    total.value = response.totalElements || 0
+    
+    // 提取分类信息
+    const categorySet = new Set<string>()
+    newsList.value.forEach(news => {
+      if (news.categoryName) {
+        categorySet.add(news.categoryName)
+      }
+    })
+    
+    categories.value = Array.from(categorySet).map((name, index) => ({
+      id: index + 1,
+      name
+    }))
   } catch (error) {
-    ElMessage.error('加载分类失败')
+    console.error('获取新闻列表失败:', error)
   }
 }
 
-// 加载新闻
-async function loadNews() {
-  loading.value = true
-  try {
-    let response
-
-    if (searchKeyword.value) {
-      // 搜索模式
-      response = await searchNews({
-        keyword: searchKeyword.value,
-        page: currentPage.value - 1,
-        size: pageSize.value
-      })
-    } else if (sortType.value === 'hot') {
-      // 热门
-      response = await getHotNews({
-        page: currentPage.value - 1,
-        size: pageSize.value
-      })
-    } else if (sortType.value === 'latest') {
-      // 最新
-      response = await getLatestNews({
-        page: currentPage.value - 1,
-        size: pageSize.value
-      })
-    } else {
-      // 智能排序（默认）
-      response = await getNewsList({
-        page: currentPage.value - 1,
-        size: pageSize.value,
-        categoryId: currentCategory.value || undefined
-      })
-    }
-
-    newsList.value = response.content
-    totalElements.value = response.totalElements
-  } catch (error) {
-    ElMessage.error('加载新闻失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 选择分类
-function selectCategory(categoryId: number | null) {
-  currentCategory.value = categoryId
-  currentPage.value = 1
-  searchKeyword.value = ''
-  loadNews()
-}
-
-// 搜索
-function handleSearch() {
-  currentPage.value = 1
-  currentCategory.value = null
-  loadNews()
-}
-
-// 查看新闻详情
-function viewNewsDetail(id: number) {
+const goToDetail = (id: number) => {
   router.push(`/news/${id}`)
 }
 
-// 格式化时间
-function formatTime(time: string) {
-  const date = new Date(time)
+const handlePageChange = () => {
+  fetchNews()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   
@@ -278,288 +199,34 @@ function formatTime(time: string) {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
   
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-  
-  return date.toLocaleDateString('zh-CN')
-}
-
-// 用户相关方法
-function goToLogin() {
-  router.push('/login')
-}
-
-function goToRegister() {
-  router.push('/register')
-}
-
-function goToUserCenter() {
-  router.push('/user/center')
-}
-
-function goToEditor() {
-  router.push('/editor')
-}
-
-function goToAdmin() {
-  router.push('/admin')
-}
-
-async function handleLogout() {
-  try {
-    await logout()
-    localStorage.removeItem('news_management_token')
-    localStorage.removeItem('news_management_refresh_token')
-    userStore.clearUser()
-    ElMessage.success('已退出登录')
-    // 刷新页面
-    window.location.reload()
-  } catch (error) {
-    ElMessage.error('退出失败')
+  if (minutes < 60) {
+    return `${minutes}分钟前`
+  } else if (hours < 24) {
+    return `${hours}小时前`
+  } else if (days < 7) {
+    return `${days}天前`
+  } else {
+    return date.toLocaleDateString('zh-CN')
   }
 }
 
-// 初始化
 onMounted(() => {
-  loadCategories()
-  loadNews()
+  fetchNews()
 })
 </script>
 
 <style scoped>
-.news-list-page {
-  min-height: 100vh;
-  background: linear-gradient(to bottom, #f0fdf4 0%, #f5f5f5 100%);
-}
-
-/* 头部 */
-.header {
-  background: linear-gradient(135deg, #2c7a3e 0%, #38a169 100%);
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(44, 122, 62, 0.3);
-}
-
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 30px;
-}
-
-.logo {
-  font-size: 28px;
-  font-weight: bold;
-  margin: 0;
-  cursor: pointer;
-}
-
-/* 导航 */
-.nav {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-}
-
-.nav-item {
-  color: white;
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.nav-item:hover {
-  background: rgba(255,255,255,0.2);
-}
-
-.nav-item.active {
-  background: rgba(255,255,255,0.25);
-  font-weight: bold;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* 搜索框 */
-.search-box {
-  width: 300px;
-}
-
-/* 用户菜单 */
-.user-menu {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-left: 20px;
-}
-
-.user-dropdown {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: all 0.3s;
-}
-
-.user-dropdown:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-:deep(.el-dropdown-menu__item) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* 主内容 */
-.main-content {
-  padding: 20px 0;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* 列表头部 */
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 15px 20px;
-  background: white;
-  border-radius: 8px;
-}
-
-.list-header h2 {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #2c7a3e 0%, #38a169 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 加载状态 */
-.loading {
-  text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 8px;
-  color: #666;
-  font-size: 16px;
-}
-
-.loading .el-icon {
-  font-size: 32px;
-  margin-bottom: 10px;
-}
-
-/* 新闻卡片 */
-.news-items {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.news-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 1px solid #e8e8e8;
-  display: flex;
-  gap: 24px;
-}
-
-.news-card:hover {
-  box-shadow: 0 8px 24px rgba(56, 161, 105, 0.15);
-  transform: translateY(-3px);
-  border-color: #38a169;
-}
-
-.news-image {
-  flex-shrink: 0;
-  width: 220px;
-  height: 165px;
-  border-radius: 10px;
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-.news-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-
-.news-card:hover .news-image img {
-  transform: scale(1.05);
-}
-
-.news-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.news-title {
-  font-size: 20px;
-  color: #333;
-  margin: 0 0 12px 0;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.news-snippet {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0 0 12px 0;
-}
-
-.news-meta {
-  display: flex;
-  gap: 20px;
-  color: #999;
-  font-size: 13px;
-  align-items: center;
-}
-
-.source {
-  color: #38a169;
-  font-weight: 600;
-  padding: 2px 8px;
-  background: #f0fdf4;
-  border-radius: 4px;
-}
-
-.views {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 分页 */
-.pagination {
-  margin-top: 30px;
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
-

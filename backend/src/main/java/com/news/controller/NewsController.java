@@ -98,21 +98,52 @@ public class NewsController {
     }
 
     /**
-     * 获取新闻列表（智能排序，公开）
+     * 获取新闻列表（支持排序、搜索和筛选）
      */
     @GetMapping
     public ResponseEntity<Page<News>> getNewsList(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String status) {
+        
+        log.info("Get news list - page: {}, size: {}, categoryId: {}, keyword: {}, sortBy: {}, status: {}", 
+                 page, size, categoryId, keyword, sortBy, status);
         
         Pageable pageable = PageRequest.of(page, size);
         Page<News> newsPage;
 
-        if (categoryId != null) {
-            newsPage = newsService.getNewsByCategoryWithSmartSort(categoryId, pageable);
+        // 如果有搜索关键词
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String searchStatus = (status != null && !status.isEmpty()) ? status : "PUBLISHED";
+            newsPage = newsService.searchNews(keyword, pageable);
+            return ResponseEntity.ok(newsPage);
+        }
+
+        // 根据排序方式选择查询方法
+        if ("time".equalsIgnoreCase(sortBy)) {
+            // 按时间排序（最新）
+            if (categoryId != null) {
+                newsPage = newsService.getLatestNewsByCategory(categoryId, pageable);
+            } else {
+                newsPage = newsService.getLatestNews(pageable);
+            }
+        } else if ("hot".equalsIgnoreCase(sortBy)) {
+            // 按热度排序
+            if (categoryId != null) {
+                newsPage = newsService.getHotNewsByCategory(categoryId, pageable);
+            } else {
+                newsPage = newsService.getHotNews(pageable);
+            }
         } else {
-            newsPage = newsService.getPublishedNewsWithSmartSort(pageable);
+            // 默认智能排序
+            if (categoryId != null) {
+                newsPage = newsService.getNewsByCategoryWithSmartSort(categoryId, pageable);
+            } else {
+                newsPage = newsService.getPublishedNewsWithSmartSort(pageable);
+            }
         }
 
         return ResponseEntity.ok(newsPage);
@@ -261,6 +292,31 @@ public class NewsController {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalViewCount", newsService.getTotalViewCount());
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * 管理员获取新闻列表（支持所有状态、排序和搜索）
+     */
+    @GetMapping("/admin/list")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<News>> getAdminNewsList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String status) {
+        
+        log.info("Admin get news list - page: {}, size: {}, categoryId: {}, keyword: {}, sortBy: {}, status: {}", 
+                 page, size, categoryId, keyword, sortBy, status);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<News> newsPage;
+
+        // 管理员可以查看所有状态的新闻
+        newsPage = newsService.getNewsListForAdmin(page, size, categoryId, keyword, sortBy, status);
+
+        return ResponseEntity.ok(newsPage);
     }
 }
 

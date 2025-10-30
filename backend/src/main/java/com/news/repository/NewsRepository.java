@@ -213,5 +213,37 @@ public interface NewsRepository extends JpaRepository<News, Long> {
      * 根据创建者查找新闻，按更新时间降序排列
      */
     Page<News> findByCreatedByOrderByUpdatedAtDesc(Long createdBy, Pageable pageable);
+
+    /**
+     * 根据分类ID查询新闻
+     */
+    Page<News> findByCategoryId(Long categoryId, Pageable pageable);
+
+    /**
+     * 根据状态和分类ID查询新闻
+     */
+    Page<News> findByStatusAndCategoryId(String status, Long categoryId, Pageable pageable);
+
+    /**
+     * 按分类获取热门新闻
+     */
+    @Query(value = "SELECT * FROM news WHERE category_id = :categoryId AND status = 'PUBLISHED' " +
+           "AND publish_time >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+           "ORDER BY view_count DESC",
+           nativeQuery = true)
+    Page<News> findHotNewsByCategory(@Param("categoryId") Long categoryId, Pageable pageable);
+
+    /**
+     * 管理员搜索新闻（支持所有状态）
+     */
+    @Query("SELECT n FROM News n WHERE " +
+           "(n.title LIKE %:keyword% OR n.content LIKE %:keyword%) " +
+           "AND (:status IS NULL OR n.status = :status) " +
+           "ORDER BY n.updatedAt DESC")
+    Page<News> searchByKeywordForAdmin(
+            @Param("keyword") String keyword,
+            @Param("status") String status,
+            Pageable pageable
+    );
 }
 
