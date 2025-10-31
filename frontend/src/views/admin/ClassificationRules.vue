@@ -222,6 +222,9 @@
           >
             <el-option label="CCTV（央视新闻）" value="CCTV" />
             <el-option label="NETEASE（网易新闻）" value="NETEASE" />
+            <el-option label="SINA（新浪新闻）" value="SINA" />
+            <el-option label="PEOPLE（人民网）" value="PEOPLE" />
+            <el-option label="XINHUA（新华网）" value="XINHUA" />
           </el-select>
           <div class="form-tip">当新闻来源匹配时，自动分类到目标分类</div>
         </el-form-item>

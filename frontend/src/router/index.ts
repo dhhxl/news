@@ -58,8 +58,8 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: '',
         name: 'Dashboard',
-        component: () => import('@/views/admin/Dashboard.vue'),
-        meta: { title: '管理后台' }
+        component: () => import('@/views/admin/DashboardNew.vue'),
+        meta: { title: '数据统计' }
       },
       {
         path: 'news',

@@ -16,14 +16,24 @@
 
       <!-- Desktop Navigation -->
       <nav class="hidden md:flex items-center gap-8">
-        <a
-          v-for="item in navItems"
-          :key="item.name"
-          :href="item.href"
-          class="text-sm font-medium hover:opacity-60 transition-opacity hover:-translate-y-1 inline-block duration-200"
-        >
-          {{ item.name }}
-        </a>
+        <template v-for="item in navItems">
+          <router-link
+            v-if="item.type === 'route'"
+            :key="'route-' + item.name"
+            :to="item.href"
+            class="text-sm font-medium hover:opacity-60 transition-opacity hover:-translate-y-1 inline-block duration-200"
+          >
+            {{ item.name }}
+          </router-link>
+          <a
+            v-else
+            :key="'anchor-' + item.name"
+            :href="item.href"
+            class="text-sm font-medium hover:opacity-60 transition-opacity hover:-translate-y-1 inline-block duration-200"
+          >
+            {{ item.name }}
+          </a>
+        </template>
         <router-link
           v-if="!isLoggedIn"
           to="/login"
@@ -91,15 +101,26 @@
         class="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg"
       >
         <nav class="flex flex-col p-6 gap-4">
-          <a
-            v-for="item in navItems"
-            :key="item.name"
-            :href="item.href"
-            class="text-lg font-medium hover:opacity-60 transition-opacity"
-            @click="closeMobileMenu"
-          >
-            {{ item.name }}
-          </a>
+          <template v-for="item in navItems">
+            <router-link
+              v-if="item.type === 'route'"
+              :key="'mobile-route-' + item.name"
+              :to="item.href"
+              class="text-lg font-medium hover:opacity-60 transition-opacity"
+              @click="closeMobileMenu"
+            >
+              {{ item.name }}
+            </router-link>
+            <a
+              v-else
+              :key="'mobile-anchor-' + item.name"
+              :href="item.href"
+              class="text-lg font-medium hover:opacity-60 transition-opacity"
+              @click="closeMobileMenu"
+            >
+              {{ item.name }}
+            </a>
+          </template>
               <router-link
                 v-if="!isLoggedIn"
                 to="/login"
@@ -164,10 +185,9 @@ const isMobileMenuOpen = ref(false)
 const isLoggedIn = computed(() => !!userStore.token)
 
 const navItems = [
-  { name: '首页', href: '/' },
-  { name: '新闻分类', href: '#categories' },
-  { name: '热门话题', href: '#trending' },
-  { name: '关于我们', href: '#about' }
+  { name: '首页', href: '/', type: 'route' },
+  { name: '新闻列表', href: '/user/news', type: 'route' },
+  { name: '热门话题', href: '#trending', type: 'anchor' }
 ]
 
 const handleScroll = () => {

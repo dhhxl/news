@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AdminLayout: typeof import('./src/components/layout/AdminLayout.vue')['default']
+    CategorySection: typeof import('./src/components/modern/CategorySection.vue')['default']
     EditorLayout: typeof import('./src/components/layout/EditorLayout.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']

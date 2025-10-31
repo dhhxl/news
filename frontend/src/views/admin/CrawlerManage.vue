@@ -196,8 +196,11 @@ const statistics = ref<any>({});
 
 // 源信息映射
 const sourceInfo: Record<string, any> = {
-  'cctv': { name: 'CCTV新闻', description: '中央电视台官方新闻', icon: '📺' },
-  'netease': { name: '网易新闻', description: '网易新闻频道', icon: '📱' }
+  'CCTV': { name: 'CCTV新闻', description: '中央电视台官方新闻', icon: '📺' },
+  'NETEASE': { name: '网易新闻', description: '网易新闻频道', icon: '📱' },
+  'SINA': { name: '新浪新闻', description: '新浪新闻频道', icon: '🔵' },
+  'PEOPLE': { name: '人民网', description: '人民日报官方网站', icon: '🏛️' },
+  'XINHUA': { name: '新华网', description: '新华社官方网站', icon: '📰' }
 };
 
 // 加载可用源

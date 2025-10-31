@@ -73,6 +73,12 @@ public class News {
     private Long categoryId;
 
     /**
+     * 分类名称（非持久化字段，用于前端显示）
+     */
+    @Transient
+    private String categoryName;
+
+    /**
      * 发布时间（草稿和待审核状态时为占位符时间）
      */
     @Column(name = "publish_time", nullable = false)

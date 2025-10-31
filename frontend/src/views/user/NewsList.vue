@@ -38,10 +38,16 @@
           </button>
         </div>
 
+        <!-- 加载状态 -->
+        <div v-if="loading" class="text-center py-16">
+          <div class="text-6xl mb-4">⏳</div>
+          <p class="text-xl text-gray-600">加载中...</p>
+        </div>
+
         <!-- 新闻网格 -->
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else-if="newsList.length > 0" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
-            v-for="news in filteredNews"
+            v-for="news in newsList"
             :key="news.id"
             class="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer group"
             @click="goToDetail(news.id)"
@@ -91,7 +97,7 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-if="filteredNews.length === 0" class="text-center py-16">
+        <div v-else class="text-center py-16">
           <div class="text-6xl mb-4">📭</div>
           <p class="text-xl text-gray-600">暂无新闻</p>
         </div>
@@ -114,9 +120,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { getNewsList } from '@/api/news'
+import { getNewsList, getCategories } from '@/api/news'
 import ModernHeader from '@/components/modern/ModernHeader.vue'
 import ModernFooter from '@/components/modern/ModernFooter.vue'
 
@@ -136,6 +142,7 @@ interface News {
 interface Category {
   id: number
   name: string
+  description?: string
 }
 
 const newsList = ref<News[]>([])
@@ -144,39 +151,39 @@ const selectedCategory = ref<number | null>(null)
 const currentPage = ref(1)
 const pageSize = ref(12)
 const total = ref(0)
+const loading = ref(false)
 
-const filteredNews = computed(() => {
-  if (selectedCategory.value === null) {
-    return newsList.value
+const fetchCategories = async () => {
+  try {
+    const data = await getCategories()
+    categories.value = data || []
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
   }
-  return newsList.value.filter(news => news.categoryName === categories.value.find(c => c.id === selectedCategory.value)?.name)
-})
+}
 
 const fetchNews = async () => {
+  loading.value = true
   try {
-    const response = await getNewsList({
+    const params: any = {
       page: currentPage.value - 1,
       size: pageSize.value,
-      categoryId: selectedCategory.value,
       status: 'PUBLISHED'
-    })
+    }
+    
+    if (selectedCategory.value !== null) {
+      params.categoryId = selectedCategory.value
+    }
+    
+    const response = await getNewsList(params)
     newsList.value = response.content || []
     total.value = response.totalElements || 0
-    
-    // 提取分类信息
-    const categorySet = new Set<string>()
-    newsList.value.forEach(news => {
-      if (news.categoryName) {
-        categorySet.add(news.categoryName)
-      }
-    })
-    
-    categories.value = Array.from(categorySet).map((name, index) => ({
-      id: index + 1,
-      name
-    }))
   } catch (error) {
     console.error('获取新闻列表失败:', error)
+    newsList.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
   }
 }
 
@@ -210,7 +217,14 @@ const formatDate = (dateString: string) => {
   }
 }
 
+// 监听分类变化，重新加载新闻
+watch(selectedCategory, () => {
+  currentPage.value = 1
+  fetchNews()
+})
+
 onMounted(() => {
+  fetchCategories()
   fetchNews()
 })
 </script>

@@ -2,18 +2,25 @@ package com.news.service;
 
 import com.news.exception.BusinessException;
 import com.news.exception.ResourceNotFoundException;
+import com.news.model.entity.Category;
 import com.news.model.entity.News;
+import com.news.repository.CategoryRepository;
 import com.news.repository.NewsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 新闻服务
@@ -23,18 +30,62 @@ import java.time.LocalDateTime;
 public class NewsService {
 
     private final NewsRepository newsRepository;
+    private final CategoryRepository categoryRepository;
     private SummaryService summaryService;
 
     @Value("${summary.auto-generate:true}")
     private boolean autoGenerateSummary;
 
-    public NewsService(NewsRepository newsRepository) {
+    public NewsService(NewsRepository newsRepository, CategoryRepository categoryRepository) {
         this.newsRepository = newsRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Autowired
     public void setSummaryService(@Lazy SummaryService summaryService) {
         this.summaryService = summaryService;
+    }
+
+    /**
+     * 填充新闻的分类名称
+     */
+    private void fillCategoryName(News news) {
+        if (news.getCategoryId() != null) {
+            categoryRepository.findById(news.getCategoryId())
+                    .ifPresent(category -> news.setCategoryName(category.getName()));
+        }
+    }
+
+    /**
+     * 批量填充新闻的分类名称（优化性能）
+     */
+    private Page<News> fillCategoryNames(Page<News> newsPage) {
+        List<News> newsList = newsPage.getContent();
+        if (newsList.isEmpty()) {
+            return newsPage;
+        }
+
+        // 获取所有分类ID
+        List<Long> categoryIds = newsList.stream()
+                .map(News::getCategoryId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 一次性查询所有分类
+        Map<Long, String> categoryMap = new HashMap<>();
+        categoryRepository.findAllById(categoryIds).forEach(category ->
+                categoryMap.put(category.getId(), category.getName())
+        );
+
+        // 填充分类名称
+        newsList.forEach(news -> {
+            String categoryName = categoryMap.get(news.getCategoryId());
+            if (categoryName != null) {
+                news.setCategoryName(categoryName);
+            }
+        });
+
+        return new PageImpl<>(newsList, newsPage.getPageable(), newsPage.getTotalElements());
     }
 
     /**
@@ -138,8 +189,10 @@ public class NewsService {
      * 根据ID获取新闻
      */
     public News getNewsById(Long id) {
-        return newsRepository.findById(id)
+        News news = newsRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("新闻不存在，ID: " + id));
+        fillCategoryName(news);
+        return news;
     }
 
     /**
@@ -158,15 +211,17 @@ public class NewsService {
      * 分页获取所有已发布新闻（智能排序）
      */
     public Page<News> getPublishedNewsWithSmartSort(Pageable pageable) {
-        return newsRepository.findByStatusWithSmartSort("PUBLISHED", pageable);
+        Page<News> newsPage = newsRepository.findByStatusWithSmartSort("PUBLISHED", pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
      * 根据分类分页获取新闻（智能排序）
      */
     public Page<News> getNewsByCategoryWithSmartSort(Long categoryId, Pageable pageable) {
-        return newsRepository.findByCategoryIdAndStatusWithSmartSort(
+        Page<News> newsPage = newsRepository.findByCategoryIdAndStatusWithSmartSort(
                 categoryId, "PUBLISHED", pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
@@ -187,21 +242,24 @@ public class NewsService {
      * 搜索新闻（标题和内容）
      */
     public Page<News> searchNews(String keyword, Pageable pageable) {
-        return newsRepository.searchByKeyword(keyword, "PUBLISHED", pageable);
+        Page<News> newsPage = newsRepository.searchByKeyword(keyword, "PUBLISHED", pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
      * 获取热门新闻
      */
     public Page<News> getHotNews(Pageable pageable) {
-        return newsRepository.findHotNews(pageable);
+        Page<News> newsPage = newsRepository.findHotNews(pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
      * 获取最新新闻
      */
     public Page<News> getLatestNews(Pageable pageable) {
-        return newsRepository.findLatestNews(pageable);
+        Page<News> newsPage = newsRepository.findLatestNews(pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
@@ -266,7 +324,7 @@ public class NewsService {
      * 按分类获取最新新闻
      */
     public Page<News> getLatestNewsByCategory(Long categoryId, Pageable pageable) {
-        return newsRepository.findByCategoryIdAndStatus(
+        Page<News> newsPage = newsRepository.findByCategoryIdAndStatus(
                 categoryId, 
                 "PUBLISHED", 
                 org.springframework.data.domain.PageRequest.of(
@@ -275,13 +333,15 @@ public class NewsService {
                     org.springframework.data.domain.Sort.by("publishTime").descending()
                 )
         );
+        return fillCategoryNames(newsPage);
     }
 
     /**
      * 按分类获取热门新闻
      */
     public Page<News> getHotNewsByCategory(Long categoryId, Pageable pageable) {
-        return newsRepository.findHotNewsByCategory(categoryId, pageable);
+        Page<News> newsPage = newsRepository.findHotNewsByCategory(categoryId, pageable);
+        return fillCategoryNames(newsPage);
     }
 
     /**
@@ -320,25 +380,30 @@ public class NewsService {
 
         // 如果有搜索关键词
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return newsRepository.searchByKeywordForAdmin(keyword, status, pageable);
+            Page<News> newsPage = newsRepository.searchByKeywordForAdmin(keyword, status, pageable);
+            return fillCategoryNames(newsPage);
         }
 
         // 按状态和分类筛选
         if (status != null && !status.isEmpty()) {
             if (categoryId != null) {
-                return newsRepository.findByStatusAndCategoryId(status, categoryId, pageable);
+                Page<News> newsPage = newsRepository.findByStatusAndCategoryId(status, categoryId, pageable);
+                return fillCategoryNames(newsPage);
             } else {
-                return newsRepository.findByStatus(status, pageable);
+                Page<News> newsPage = newsRepository.findByStatus(status, pageable);
+                return fillCategoryNames(newsPage);
             }
         }
 
         // 只按分类筛选
         if (categoryId != null) {
-            return newsRepository.findByCategoryId(categoryId, pageable);
+            Page<News> newsPage = newsRepository.findByCategoryId(categoryId, pageable);
+            return fillCategoryNames(newsPage);
         }
 
         // 返回所有新闻
-        return newsRepository.findAll(pageable);
+        Page<News> newsPage = newsRepository.findAll(pageable);
+        return fillCategoryNames(newsPage);
     }
 }
 

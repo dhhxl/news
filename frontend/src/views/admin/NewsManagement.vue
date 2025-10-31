@@ -117,7 +117,11 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column label="序号" width="80">
+          <template #default="scope">
+            {{ (currentPage - 1) * pageSize + scope.$index + 1 }}
+          </template>
+        </el-table-column>
         <el-table-column prop="title" label="标题" min-width="300" />
         <el-table-column prop="sourceWebsite" label="来源" width="100" />
         <el-table-column label="分类" width="100">
